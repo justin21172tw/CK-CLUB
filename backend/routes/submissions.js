@@ -26,7 +26,6 @@ export default async function submissionRoutes(fastify, opts) {
    */
   fastify.post('/', async (request, reply) => {
     try {
-      const db = getFirestore()
       await ensureUploadDir()
 
       // 使用 multipart 解析表單數據和檔案
@@ -52,8 +51,19 @@ export default async function submissionRoutes(fastify, opts) {
             uploadedAt: new Date().toISOString(),
           }
         } else {
-          // 處理文字欄位
-          fields[part.fieldname] = part.value
+          // 處理文字欄位，確保值不為 undefined
+          const value = part.value || ''
+
+          // 如果是 items 欄位，解析 JSON
+          if (part.fieldname === 'items') {
+            try {
+              fields[part.fieldname] = JSON.parse(value)
+            } catch {
+              fields[part.fieldname] = value
+            }
+          } else {
+            fields[part.fieldname] = value
+          }
         }
       }
 
@@ -68,11 +78,34 @@ export default async function submissionRoutes(fastify, opts) {
         updatedAt: new Date().toISOString(),
       }
 
-      const docRef = await db.collection('submissions').add(submission)
+      // 生成唯一 ID
+      const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+      // 暫時保存到文件系統（因為 Firestore 未配置）
+      const submissionsDir = path.join(UPLOADS_DIR, 'submissions')
+      try {
+        await fs.access(submissionsDir)
+      } catch {
+        await fs.mkdir(submissionsDir, { recursive: true })
+      }
+
+      const submissionFile = path.join(submissionsDir, `${submissionId}.json`)
+      await fs.writeFile(submissionFile, JSON.stringify(submission, null, 2))
+
+      fastify.log.info(`Submission saved to file: ${submissionId}`)
+
+      // 嘗試保存到 Firestore (如果可用)
+      try {
+        const db = getFirestore()
+        const docRef = await db.collection('submissions').add(submission)
+        fastify.log.info(`Submission saved to Firestore: ${docRef.id}`)
+      } catch (firestoreError) {
+        fastify.log.warn(`Firestore save failed (using file fallback): ${firestoreError.message}`)
+      }
 
       return reply.status(201).send({
         success: true,
-        submissionId: docRef.id,
+        submissionId,
         data: submission,
       })
     } catch (error) {

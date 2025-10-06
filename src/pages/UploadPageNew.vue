@@ -276,31 +276,44 @@ onMounted(async () => {
 
 // 提交表單
 async function onSubmit() {
+  console.log('[onSubmit] Starting form submission...')
+  console.log('[onSubmit] Form data:', formData.value)
+  console.log('[onSubmit] Files:', files.value)
+
   try {
     submitting.value = true
 
     // 建立 FormData
     const submitData = new FormData()
+    console.log('[onSubmit] Creating FormData...')
 
     // 添加文字欄位
     Object.keys(formData.value).forEach((key) => {
       if (key === 'items') {
-        submitData.append(key, JSON.stringify(formData.value[key]))
+        const itemsJson = JSON.stringify(formData.value[key])
+        submitData.append(key, itemsJson)
+        console.log(`[onSubmit] Added field "${key}":`, itemsJson)
       } else {
         submitData.append(key, formData.value[key])
+        console.log(`[onSubmit] Added field "${key}":`, formData.value[key])
       }
     })
 
     // 添加檔案
     if (files.value.contractFile) {
       submitData.append('contractFile', files.value.contractFile)
+      console.log('[onSubmit] Added contractFile:', files.value.contractFile.name)
     }
     if (files.value.dataCardFile) {
       submitData.append('dataCardFile', files.value.dataCardFile)
+      console.log('[onSubmit] Added dataCardFile:', files.value.dataCardFile.name)
     }
 
+    console.log('[onSubmit] Sending request to backend...')
+
     // 提交到後端
-    await createSubmission(submitData)
+    const response = await createSubmission(submitData)
+    console.log('[onSubmit] Response received:', response)
 
     $q.notify({
       type: 'positive',
@@ -310,8 +323,16 @@ async function onSubmit() {
 
     // 重置表單
     resetForm()
+    console.log('[onSubmit] Form reset completed')
   } catch (error) {
-    console.error('提交失敗:', error)
+    console.error('[onSubmit] Error occurred:', error)
+    console.error('[onSubmit] Error details:', {
+      message: error.message,
+      response: error.response,
+      status: error.response?.status,
+      data: error.response?.data,
+    })
+
     $q.notify({
       type: 'negative',
       message: '提交失敗: ' + (error.response?.data?.message || error.message),
