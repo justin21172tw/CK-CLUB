@@ -33,10 +33,34 @@
               外聘指導教師資料繳交表單
             </div>
 
+            <!-- 注意事項 -->
+            <q-banner class="bg-blue-1 text-dark q-mb-md" rounded>
+              <template v-slot:avatar>
+                <q-icon name="info" color="primary" />
+              </template>
+              <div class="text-subtitle2 text-weight-bold q-mb-sm">注意事項</div>
+              <div class="q-mb-sm">
+                各位老師社團指導老師好，敬請閱讀以下事項：
+                為保障本校同學學習權益，教育局規定社團指導老師必須簽署契約書，並將基本資料提供給人事室查核和社團活動組建檔之用，感謝。
+              </div>
+              <div class="q-mb-sm">若欲電子簽核，請下載附件，簽署完畢後上傳至此處。</div>
+              <div class="text-negative text-weight-bold">
+                親筆簽名掃描或電子簽章後上傳表單，請勿以拍照的方式上傳，以免影響您的權益。謝謝！
+              </div>
+            </q-banner>
+
             <q-form @submit="onSubmit" class="q-gutter-md">
               <!-- 社團資訊 -->
               <div class="text-subtitle1 text-weight-bold q-mt-md">社團資訊</div>
               <q-separator />
+
+              <q-input
+                v-model="formData.academicYear"
+                label="學年度 * "
+                filled
+                placeholder="範例 : 113"
+                :rules="[(val) => !!val || '請輸入學年度']"
+              />
 
               <q-select
                 v-model="formData.club"
@@ -48,23 +72,32 @@
 
               <q-input v-model="formData.clubLeader" label="社長" filled />
 
-              <q-input
-                v-model.number="formData.grade"
-                type="number"
-                label="年級 *"
-                filled
-                :rules="[(val) => !!val || '請輸入年級']"
-              />
-
               <!-- 教師資訊 -->
               <div class="text-subtitle1 text-weight-bold q-mt-lg">教師資訊</div>
               <q-separator />
 
+              <q-select
+                v-model="formData.teacherRole"
+                :options="teacherRoleOptions"
+                label="身分 *"
+                filled
+                :rules="[(val) => !!val || '請選擇身分']"
+              />
+
+              <q-input
+                v-if="formData.teacherRole === '其他'"
+                v-model="formData.teacherRoleOther"
+                label="請說明身分 *"
+                filled
+                placeholder="例如：臨時講師、協同教練等"
+                :rules="[(val) => !!val || '請說明您的身分']"
+              />
+
               <q-input
                 v-model="formData.teacherName"
-                label="教師姓名 *"
+                label="指導老師姓名 *"
                 filled
-                :rules="[(val) => !!val || '請輸入教師姓名']"
+                :rules="[(val) => !!val || '請輸入指導老師姓名']"
               />
 
               <q-input v-model="formData.lineId" label="Line ID *" filled />
@@ -90,14 +123,23 @@
               <div class="text-subtitle1 text-weight-bold q-mt-lg">檔案上傳</div>
               <q-separator />
 
+              <div class="q-mb-sm text-caption text-grey-7">
+                請根據上方勾選的繳交項目上傳對應的檔案
+              </div>
+
               <q-file
-                v-if="formData.items.contractAndAgreement"
                 v-model="files.contractFile"
                 label="會辦單+契約書 (PDF, 最大 10MB)"
                 filled
                 accept=".pdf"
                 max-file-size="10485760"
                 @rejected="onFileRejected"
+                :disable="!formData.items.contractAndAgreement"
+                :hint="
+                  formData.items.contractAndAgreement
+                    ? '請上傳簽署完成的PDF檔案'
+                    : '請先勾選「會辦單+契約書」'
+                "
               >
                 <template v-slot:prepend>
                   <q-icon name="attach_file" />
@@ -105,13 +147,14 @@
               </q-file>
 
               <q-file
-                v-if="formData.items.dataCard"
                 v-model="files.dataCardFile"
                 label="資料卡 (PDF, 最大 10MB)"
                 filled
                 accept=".pdf"
                 max-file-size="10485760"
                 @rejected="onFileRejected"
+                :disable="!formData.items.dataCard"
+                :hint="formData.items.dataCard ? '請上傳填寫完成的PDF檔案' : '請先勾選「資料卡」'"
               >
                 <template v-slot:prepend>
                   <q-icon name="attach_file" />
@@ -126,12 +169,8 @@
                   color="primary"
                   size="lg"
                   :loading="submitting"
-                  :disable="!isAuthenticated"
                   class="full-width"
                 />
-                <div v-if="!isAuthenticated" class="text-caption text-negative q-mt-sm">
-                  請先登入才能提交資料
-                </div>
               </div>
             </q-form>
           </q-card>
@@ -174,18 +213,18 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
-import { useAuth } from 'src/composables/useAuth'
 import { createSubmission, getTemplates, downloadTemplate } from 'src/services/api'
 
 const $q = useQuasar()
-const { isAuthenticated } = useAuth()
 
 // 表單數據
 const formData = ref({
+  academicYear: '',
   club: null,
   clubCode: '',
   clubLeader: '',
-  grade: null,
+  teacherRole: null,
+  teacherRoleOther: '',
   teacherName: '',
   lineId: '',
   items: {
@@ -216,6 +255,9 @@ const clubOptions = ref([
   // 可以繼續添加更多社團
 ])
 
+// 身分選項
+const teacherRoleOptions = ref(['主要社團指導老師', '教練', '邀請講師', '其他'])
+
 // 範本列表
 const templates = ref([])
 
@@ -234,14 +276,6 @@ onMounted(async () => {
 
 // 提交表單
 async function onSubmit() {
-  if (!isAuthenticated.value) {
-    $q.notify({
-      type: 'negative',
-      message: '請先登入才能提交資料',
-    })
-    return
-  }
-
   try {
     submitting.value = true
 
@@ -374,10 +408,12 @@ function onFileRejected(rejectedEntries) {
 // 重置表單
 function resetForm() {
   formData.value = {
+    academicYear: '',
     club: null,
     clubCode: '',
     clubLeader: '',
-    grade: null,
+    teacherRole: null,
+    teacherRoleOther: '',
     teacherName: '',
     lineId: '',
     items: {
