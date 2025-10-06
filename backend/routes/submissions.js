@@ -21,10 +21,10 @@ async function ensureUploadDir() {
 
 export default async function submissionRoutes(fastify, opts) {
   /**
-   * 提交外聘指導教師資料
+   * 提交外聘指導教師資料 (公開 API，不需要登入)
    * POST /api/submissions
    */
-  fastify.post('/', { preHandler: verifyAuth }, async (request, reply) => {
+  fastify.post('/', async (request, reply) => {
     try {
       const db = getFirestore()
       await ensureUploadDir()
@@ -61,8 +61,8 @@ export default async function submissionRoutes(fastify, opts) {
       const submission = {
         ...fields,
         files,
-        submittedBy: request.user.uid,
-        submitterEmail: request.user.email,
+        submittedBy: request.user?.uid || 'anonymous',
+        submitterEmail: request.user?.email || fields.lineId || 'unknown',
         status: 'pending', // pending, approved, rejected
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

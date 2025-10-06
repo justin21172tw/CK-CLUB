@@ -40,11 +40,12 @@ api.interceptors.response.use(
 // ==================== 提交 API ====================
 
 /**
- * 提交外聘教師資料
+ * 提交外聘教師資料 (公開 API，不需要身份驗證)
  * @param {FormData} formData - 包含文字欄位和檔案
  */
 export async function createSubmission(formData) {
-  const response = await api.post('/submissions', formData, {
+  // 使用普通 axios 而非 api 實例，避免自動添加 Authorization header
+  const response = await axios.post(`${API_BASE}/submissions`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
