@@ -350,7 +350,7 @@ async function handleDownloadTemplate(templateId) {
     })
 
     const result = await downloadTemplate(templateId)
-
+    // TODOS : downloaded file name may not be correct
     $q.notify({
       type: 'positive',
       message: `範本「${result.filename}」下載成功`,

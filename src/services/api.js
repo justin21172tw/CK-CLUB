@@ -90,6 +90,65 @@ export async function deleteSubmission(id) {
   return response.data
 }
 
+/**
+ * 批量下載提交的所有檔案 (ZIP)
+ * @param {string} id - 提交 ID
+ * @param {string} filename - 檔案名稱（用於 ZIP 名稱）
+ */
+export async function downloadSubmissionFiles(id, filename = 'submission') {
+  const response = await api.get(`/submissions/${id}/download-all`, {
+    responseType: 'blob',
+  })
+
+  // 從 Content-Disposition header 獲取檔名
+  const contentDisposition = response.headers['content-disposition']
+  let zipFilename = `${filename}.zip`
+
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="(.+)"/)
+    if (match) {
+      zipFilename = decodeURIComponent(match[1])
+    }
+  }
+
+  // 創建 blob URL 並觸發下載
+  const blob = new Blob([response.data], { type: 'application/zip' })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = zipFilename
+  link.style.display = 'none'
+
+  document.body.appendChild(link)
+  link.click()
+
+  setTimeout(() => {
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  }, 100)
+
+  return { success: true, filename: zipFilename }
+}
+
+/**
+ * 新增訊息/回覆
+ * @param {string} id - 提交 ID
+ * @param {string} content - 訊息內容
+ */
+export async function addSubmissionMessage(id, content) {
+  const response = await api.post(`/submissions/${id}/messages`, { content })
+  return response.data
+}
+
+/**
+ * 獲取訊息列表
+ * @param {string} id - 提交 ID
+ */
+export async function getSubmissionMessages(id) {
+  const response = await api.get(`/submissions/${id}/messages`)
+  return response.data
+}
+
 // ==================== 範本 API ====================
 
 /**

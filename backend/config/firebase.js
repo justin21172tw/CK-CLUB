@@ -35,3 +35,5 @@ export function getFirestore() {
 export function getAuth() {
   return auth
 }
+
+export { admin }

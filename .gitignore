@@ -47,11 +47,19 @@ $RECYCLE.BIN/
 # local .env files
 .env.local*
 .env
+.env.*.local
 backend/.env
+backend/.env.local
 
 # Firebase service account credentials
 serviceAccount.json
 backend/serviceAccount.json
+**/serviceAccount.json
+*-serviceAccount.json
+
+# Firebase config with secrets (if any)
+backend/config/secrets.js
+backend/config/secrets.json
 
 # Internal documentation (not for version control)
 docs-internal/

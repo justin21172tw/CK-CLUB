@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 允許所有人讀取公開檔案
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null; // 僅已登入用戶可寫入
+    }
+    
+    // 提交的檔案（submissions）
+    match /submissions/{submissionId}/{fileName} {
+      // 任何人都可以上傳提交檔案（因為提交表單是公開的）
+      allow write: if true;
+      // 只有已登入用戶（管理員）可以下載
+      allow read: if request.auth != null;
+    }
+    
+    // 範本檔案（templates）
+    match /templates/{templateId} {
+      // 任何人都可以下載範本
+      allow read: if true;
+      // 只有管理員可以上傳範本
+      allow write: if request.auth != null && 
+                      request.auth.token.role == 'admin';
+    }
+    
+    // 其他所有檔案預設拒絕
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

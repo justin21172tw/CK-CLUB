@@ -1,5 +1,13 @@
 <template>
   <q-page class="q-pa-md">
+    <!-- 開發模式警告橫幅 -->
+    <q-banner v-if="isDevMode" class="bg-warning text-white q-mb-md" rounded>
+      <template v-slot:avatar>
+        <q-icon name="construction" />
+      </template>
+      <strong>🔧 開發模式</strong> - 您正在使用本地管理員權限
+    </q-banner>
+
     <div class="q-mb-md row justify-between items-center">
       <div class="text-h4">
         <q-icon name="admin_panel_settings" class="q-mr-sm" />
@@ -212,6 +220,60 @@
                     </q-item-section>
                   </q-item>
                 </q-list>
+
+                <q-separator class="q-my-sm" />
+
+                <q-btn
+                  label="下載所有檔案 (ZIP)"
+                  icon="download"
+                  color="primary"
+                  flat
+                  @click="downloadAllFiles(selectedSubmission)"
+                  class="full-width"
+                />
+              </q-card-section>
+            </q-card>
+
+            <!-- 訊息與回覆 -->
+            <q-card flat bordered>
+              <q-card-section>
+                <div class="text-subtitle1 text-weight-bold">訊息與回覆</div>
+                <q-separator class="q-my-sm" />
+
+                <!-- 訊息列表 -->
+                <q-timeline v-if="submissionMessages.length > 0" color="primary" class="q-mb-md">
+                  <q-timeline-entry
+                    v-for="(msg, idx) in submissionMessages"
+                    :key="idx"
+                    :title="msg.from === 'admin' ? '管理員' : '使用者'"
+                    :subtitle="formatDate(msg.timestamp)"
+                    :icon="msg.from === 'admin' ? 'admin_panel_settings' : 'person'"
+                    :color="msg.from === 'admin' ? 'primary' : 'secondary'"
+                  >
+                    <div>{{ msg.content }}</div>
+                    <div class="text-caption text-grey-6">{{ msg.fromEmail }}</div>
+                  </q-timeline-entry>
+                </q-timeline>
+
+                <div v-else class="text-grey-6 q-mb-md">尚無訊息</div>
+
+                <!-- 新增訊息 -->
+                <q-input
+                  v-model="newMessage"
+                  label="輸入回覆訊息"
+                  type="textarea"
+                  filled
+                  rows="3"
+                  class="q-mb-sm"
+                />
+
+                <q-btn
+                  label="送出訊息"
+                  icon="send"
+                  color="primary"
+                  @click="sendMessage"
+                  :disable="!newMessage || newMessage.trim() === ''"
+                />
               </q-card-section>
             </q-card>
 
@@ -279,22 +341,19 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useQuasar } from 'quasar'
-import { useRouter } from 'vue-router'
 import { useAuth } from 'src/composables/useAuth'
-import { getSubmissions, updateSubmissionStatus } from 'src/services/api'
+import {
+  getSubmissions,
+  updateSubmissionStatus,
+  downloadSubmissionFiles,
+  getSubmissionMessages,
+  addSubmissionMessage,
+} from 'src/services/api'
 
 const $q = useQuasar()
-const router = useRouter()
-const { isAdmin } = useAuth()
+const { isDevMode } = useAuth()
 
-// 檢查權限
-if (!isAdmin.value) {
-  $q.notify({
-    type: 'negative',
-    message: '權限不足，僅限管理員訪問',
-  })
-  router.push('/')
-}
+// 身分限制已撤除 - 所有人都可以訪問此頁面
 
 // 資料
 const submissions = ref([])
@@ -302,6 +361,8 @@ const selectedSubmission = ref(null)
 const loading = ref(false)
 const showDetailDialog = ref(false)
 const reviewNote = ref('')
+const submissionMessages = ref([])
+const newMessage = ref('')
 
 // 篩選器
 const filters = ref({
@@ -397,10 +458,20 @@ async function loadSubmissions() {
 }
 
 // 查看詳情
-function viewSubmission(submission) {
+async function viewSubmission(submission) {
   selectedSubmission.value = submission
   reviewNote.value = submission.reviewNote || ''
+  newMessage.value = ''
   showDetailDialog.value = true
+
+  // 載入訊息
+  try {
+    const response = await getSubmissionMessages(submission.id)
+    submissionMessages.value = response.data || []
+  } catch (error) {
+    console.error('載入訊息失敗:', error)
+    submissionMessages.value = []
+  }
 }
 
 // 批准提交
@@ -485,6 +556,58 @@ function getStatusLabel(status) {
 // 列點擊事件
 function onRowClick(evt, row) {
   viewSubmission(row)
+}
+
+// 下載所有檔案
+async function downloadAllFiles(submission) {
+  try {
+    $q.loading.show({ message: '正在打包檔案...' })
+
+    const filename = `${submission.club}_${submission.teacherName}_${submission.id}`
+    await downloadSubmissionFiles(submission.id, filename)
+
+    $q.notify({
+      type: 'positive',
+      message: '檔案下載成功',
+    })
+  } catch (error) {
+    console.error('下載失敗:', error)
+    $q.notify({
+      type: 'negative',
+      message: '下載失敗: ' + (error.response?.data?.message || error.message),
+    })
+  } finally {
+    $q.loading.hide()
+  }
+}
+
+// 送出訊息
+async function sendMessage() {
+  if (!newMessage.value || newMessage.value.trim() === '') {
+    return
+  }
+
+  try {
+    await addSubmissionMessage(selectedSubmission.value.id, newMessage.value)
+
+    $q.notify({
+      type: 'positive',
+      message: '訊息已送出',
+    })
+
+    // 重新載入訊息
+    const response = await getSubmissionMessages(selectedSubmission.value.id)
+    submissionMessages.value = response.data || []
+
+    // 清空輸入框
+    newMessage.value = ''
+  } catch (error) {
+    console.error('送出訊息失敗:', error)
+    $q.notify({
+      type: 'negative',
+      message: '送出失敗: ' + (error.response?.data?.message || error.message),
+    })
+  }
 }
 
 // 初始化

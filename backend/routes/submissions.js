@@ -1,8 +1,14 @@
-import { getFirestore } from '../config/firebase.js'
-import { verifyAuth, requireAdmin } from '../middleware/auth.js'
+import { getFirestore, admin } from '../config/firebase.js'
+// import { verifyAuth, requireAdmin } from '../middleware/auth.js' // 暫時停用身分驗證
 import { promises as fs } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import {
+  sendSubmissionConfirmation,
+  sendApprovalNotification,
+  sendRejectionNotification,
+  sendNewMessageNotification,
+} from '../utils/emailService.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -19,7 +25,7 @@ async function ensureUploadDir() {
   }
 }
 
-export default async function submissionRoutes(fastify, opts) {
+export default async function submissionRoutes(fastify, _opts) {
   /**
    * 提交外聘指導教師資料 (公開 API，不需要登入)
    * POST /api/submissions
@@ -103,6 +109,14 @@ export default async function submissionRoutes(fastify, opts) {
         fastify.log.warn(`Firestore save failed (using file fallback): ${firestoreError.message}`)
       }
 
+      // 發送確認郵件（非阻塞）
+      sendSubmissionConfirmation({
+        ...submission,
+        submissionId,
+      }).catch((err) => {
+        fastify.log.warn('Failed to send confirmation email:', err.message)
+      })
+
       return reply.status(201).send({
         success: true,
         submissionId,
@@ -118,35 +132,76 @@ export default async function submissionRoutes(fastify, opts) {
   })
 
   /**
-   * 獲取所有提交記錄 (管理員)
+   * 獲取所有提交記錄 (管理員) - 暫時移除身分限制
    * GET /api/submissions
    */
-  fastify.get('/', { preHandler: requireAdmin }, async (request, reply) => {
+  fastify.get('/', async (request, reply) => {
     try {
-      const db = getFirestore()
       const { status, club, limit = 50 } = request.query
+      let submissions = []
 
-      let query = db.collection('submissions').orderBy('createdAt', 'desc')
+      // 先嘗試從 Firestore 讀取
+      try {
+        const db = getFirestore()
+        let query = db.collection('submissions').orderBy('createdAt', 'desc')
 
-      if (status) {
-        query = query.where('status', '==', status)
-      }
+        if (status) {
+          query = query.where('status', '==', status)
+        }
 
-      if (club) {
-        query = query.where('club', '==', club)
-      }
+        if (club) {
+          query = query.where('club', '==', club)
+        }
 
-      query = query.limit(parseInt(limit))
+        query = query.limit(parseInt(limit))
 
-      const snapshot = await query.get()
-      const submissions = []
+        const snapshot = await query.get()
 
-      snapshot.forEach((doc) => {
-        submissions.push({
-          id: doc.id,
-          ...doc.data(),
+        snapshot.forEach((doc) => {
+          submissions.push({
+            id: doc.id,
+            ...doc.data(),
+          })
         })
-      })
+
+        fastify.log.info(`Loaded ${submissions.length} submissions from Firestore`)
+      } catch (firestoreError) {
+        fastify.log.warn(`Firestore read failed, trying file system: ${firestoreError.message}`)
+
+        // Fallback: 從檔案系統讀取
+        const submissionsDir = path.join(UPLOADS_DIR, 'submissions')
+        try {
+          const files = await fs.readdir(submissionsDir)
+
+          for (const file of files) {
+            if (file.endsWith('.json')) {
+              const filePath = path.join(submissionsDir, file)
+              const content = await fs.readFile(filePath, 'utf-8')
+              const data = JSON.parse(content)
+
+              // 套用篩選條件
+              if (status && data.status !== status) continue
+              if (club && data.club !== club) continue
+
+              submissions.push({
+                id: file.replace('.json', ''),
+                ...data,
+              })
+            }
+          }
+
+          // 按建立時間排序
+          submissions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+          // 限制數量
+          submissions = submissions.slice(0, parseInt(limit))
+
+          fastify.log.info(`Loaded ${submissions.length} submissions from file system`)
+        } catch (fsError) {
+          fastify.log.error('Failed to read from file system:', fsError)
+          throw fsError
+        }
+      }
 
       return reply.send({
         success: true,
@@ -163,10 +218,10 @@ export default async function submissionRoutes(fastify, opts) {
   })
 
   /**
-   * 獲取單筆提交記錄
+   * 獲取單筆提交記錄 - 暫時移除身分限制
    * GET /api/submissions/:id
    */
-  fastify.get('/:id', { preHandler: verifyAuth }, async (request, reply) => {
+  fastify.get('/:id', async (request, reply) => {
     try {
       const db = getFirestore()
       const { id } = request.params
@@ -182,13 +237,13 @@ export default async function submissionRoutes(fastify, opts) {
 
       const data = doc.data()
 
-      // 檢查權限:只有提交者本人或管理員可以查看
-      if (data.submittedBy !== request.user.uid && request.user.role !== 'admin') {
-        return reply.status(403).send({
-          error: 'Forbidden',
-          message: '權限不足',
-        })
-      }
+      // 身分限制已暫時移除
+      // if (data.submittedBy !== request.user.uid && request.user.role !== 'admin') {
+      //   return reply.status(403).send({
+      //     error: 'Forbidden',
+      //     message: '權限不足',
+      //   })
+      // }
 
       return reply.send({
         success: true,
@@ -207,10 +262,10 @@ export default async function submissionRoutes(fastify, opts) {
   })
 
   /**
-   * 更新提交狀態 (審核功能 - 管理員)
+   * 更新提交狀態 (審核功能) - 暫時移除身分限制
    * PATCH /api/submissions/:id
    */
-  fastify.patch('/:id', { preHandler: requireAdmin }, async (request, reply) => {
+  fastify.patch('/:id', async (request, reply) => {
     try {
       const db = getFirestore()
       const { id } = request.params
@@ -220,6 +275,14 @@ export default async function submissionRoutes(fastify, opts) {
         return reply.status(400).send({
           error: 'Bad Request',
           message: '無效的狀態值',
+        })
+      }
+
+      const doc = await db.collection('submissions').doc(id).get()
+      if (!doc.exists) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: '找不到該提交記錄',
         })
       }
 
@@ -233,6 +296,24 @@ export default async function submissionRoutes(fastify, opts) {
           reviewedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
+
+      // 發送審核結果通知（非阻塞）
+      const submissionData = doc.data()
+      if (status === 'approved') {
+        sendApprovalNotification({
+          ...submissionData,
+          reviewNote,
+        }).catch((err) => {
+          fastify.log.warn('Failed to send approval email:', err.message)
+        })
+      } else if (status === 'rejected') {
+        sendRejectionNotification({
+          ...submissionData,
+          reviewNote,
+        }).catch((err) => {
+          fastify.log.warn('Failed to send rejection email:', err.message)
+        })
+      }
 
       return reply.send({
         success: true,
@@ -248,10 +329,10 @@ export default async function submissionRoutes(fastify, opts) {
   })
 
   /**
-   * 刪除提交記錄 (管理員)
+   * 刪除提交記錄 - 暫時移除身分限制
    * DELETE /api/submissions/:id
    */
-  fastify.delete('/:id', { preHandler: requireAdmin }, async (request, reply) => {
+  fastify.delete('/:id', async (request, reply) => {
     try {
       const db = getFirestore()
       const { id } = request.params
@@ -267,7 +348,7 @@ export default async function submissionRoutes(fastify, opts) {
             try {
               const filepath = path.join(UPLOADS_DIR, file.storedFilename)
               await fs.unlink(filepath)
-            } catch (err) {
+            } catch {
               fastify.log.warn(`Failed to delete file: ${file.storedFilename}`)
             }
           }
@@ -290,10 +371,10 @@ export default async function submissionRoutes(fastify, opts) {
   })
 
   /**
-   * 下載提交的檔案
+   * 下載提交的檔案 - 暫時移除身分限制
    * GET /api/submissions/:id/files/:filename
    */
-  fastify.get('/:id/files/:filename', { preHandler: verifyAuth }, async (request, reply) => {
+  fastify.get('/:id/files/:filename', async (request, reply) => {
     try {
       const db = getFirestore()
       const { id, filename } = request.params
@@ -309,13 +390,13 @@ export default async function submissionRoutes(fastify, opts) {
 
       const data = doc.data()
 
-      // 檢查權限
-      if (data.submittedBy !== request.user.uid && request.user.role !== 'admin') {
-        return reply.status(403).send({
-          error: 'Forbidden',
-          message: '權限不足',
-        })
-      }
+      // 身分限制已暫時移除
+      // if (data.submittedBy !== request.user.uid && request.user.role !== 'admin') {
+      //   return reply.status(403).send({
+      //     error: 'Forbidden',
+      //     message: '權限不足',
+      //   })
+      // }
 
       // 查找檔案
       const fileInfo = Object.values(data.files || {}).find((f) => f.storedFilename === filename)
@@ -329,10 +410,190 @@ export default async function submissionRoutes(fastify, opts) {
 
       // 發送檔案
       const filepath = path.join(UPLOADS_DIR, filename)
+
+      // 檢查檔案是否存在
+      try {
+        await fs.access(filepath)
+      } catch {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: '檔案不存在於伺服器上',
+        })
+      }
+
       return reply
         .type(fileInfo.mimetype)
-        .header('Content-Disposition', `attachment; filename="${fileInfo.filename}"`)
+        .header(
+          'Content-Disposition',
+          `attachment; filename="${encodeURIComponent(fileInfo.filename)}"`,
+        )
         .send(await fs.readFile(filepath))
+    } catch (error) {
+      fastify.log.error(error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: error.message,
+      })
+    }
+  })
+
+  /**
+   * 批量下載提交的所有檔案（ZIP 格式）- 暫時移除身分限制
+   * GET /api/submissions/:id/download-all
+   */
+  fastify.get('/:id/download-all', async (request, reply) => {
+    try {
+      const db = getFirestore()
+      const { id } = request.params
+
+      const doc = await db.collection('submissions').doc(id).get()
+
+      if (!doc.exists) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: '找不到該提交記錄',
+        })
+      }
+
+      const data = doc.data()
+
+      // 身分限制已暫時移除
+      // if (data.submittedBy !== request.user.uid && request.user.role !== 'admin') {
+      //   return reply.status(403).send({
+      //     error: 'Forbidden',
+      //     message: '權限不足',
+      //   })
+      // }
+
+      // 使用動態導入 archiver
+      const archiver = await import('archiver').then((m) => m.default)
+      const archive = archiver('zip', { zlib: { level: 9 } })
+
+      // 設置響應頭
+      const zipFilename = `${data.club}_${data.teacherName}_${id}.zip`
+      reply.raw.setHeader('Content-Type', 'application/zip')
+      reply.raw.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${encodeURIComponent(zipFilename)}"`,
+      )
+
+      // 將檔案添加到 zip
+      for (const fileInfo of Object.values(data.files || {})) {
+        const filepath = path.join(UPLOADS_DIR, fileInfo.storedFilename)
+        try {
+          await fs.access(filepath)
+          archive.file(filepath, { name: fileInfo.filename })
+        } catch {
+          fastify.log.warn(`File not found: ${filepath}`)
+        }
+      }
+
+      // 完成並發送
+      archive.pipe(reply.raw)
+      await archive.finalize()
+    } catch (error) {
+      fastify.log.error(error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: error.message,
+      })
+    }
+  })
+
+  /**
+   * 新增或更新訊息（管理員回覆）- 暫時移除身分限制
+   * POST /api/submissions/:id/messages
+   */
+  fastify.post('/:id/messages', async (request, reply) => {
+    try {
+      const db = getFirestore()
+      const { id } = request.params
+      const { content } = request.body
+
+      if (!content || content.trim() === '') {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: '訊息內容不能為空',
+        })
+      }
+
+      const doc = await db.collection('submissions').doc(id).get()
+
+      if (!doc.exists) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: '找不到該提交記錄',
+        })
+      }
+
+      const message = {
+        from: 'admin', // 暫時固定為 admin
+        fromEmail: 'dev@localhost', // 暫時使用假資料
+        content: content.trim(),
+        timestamp: new Date().toISOString(),
+      }
+
+      // 更新 messages 陣列
+      await db
+        .collection('submissions')
+        .doc(id)
+        .update({
+          messages: admin.firestore.FieldValue.arrayUnion(message),
+          updatedAt: new Date().toISOString(),
+        })
+
+      // 發送新訊息通知（非阻塞）
+      const submissionData = doc.data()
+      sendNewMessageNotification(submissionData, message).catch((err) => {
+        fastify.log.warn('Failed to send message notification email:', err.message)
+      })
+
+      return reply.send({
+        success: true,
+        message: '訊息已送出',
+        data: message,
+      })
+    } catch (error) {
+      fastify.log.error(error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: error.message,
+      })
+    }
+  })
+
+  /**
+   * 獲取訊息列表 - 暫時移除身分限制
+   * GET /api/submissions/:id/messages
+   */
+  fastify.get('/:id/messages', async (request, reply) => {
+    try {
+      const db = getFirestore()
+      const { id } = request.params
+
+      const doc = await db.collection('submissions').doc(id).get()
+
+      if (!doc.exists) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: '找不到該提交記錄',
+        })
+      }
+
+      const data = doc.data()
+
+      // 身分限制已暫時移除
+      // if (data.submittedBy !== request.user.uid && request.user.role !== 'admin') {
+      //   return reply.status(403).send({
+      //     error: 'Forbidden',
+      //     message: '權限不足',
+      //   })
+      // }
+
+      return reply.send({
+        success: true,
+        data: data.messages || [],
+      })
     } catch (error) {
       fastify.log.error(error)
       return reply.status(500).send({

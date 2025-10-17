@@ -3,6 +3,7 @@ import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
 import dotenv from 'dotenv'
 import { initializeFirebase } from './config/firebase.js'
+import { initEmailService } from './utils/emailService.js'
 import submissionRoutes from './routes/submissions.js'
 import authRoutes from './routes/auth.js'
 import templateRoutes from './routes/templates.js'
@@ -28,6 +29,9 @@ await fastify.register(multipart, {
 
 // 初始化 Firebase Admin
 initializeFirebase()
+
+// 初始化 Email 服務
+initEmailService()
 
 // 健康檢查
 fastify.get('/health', async () => {

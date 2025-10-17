@@ -1,0 +1,51 @@
+# Render.com 部署配置
+# 用於自動部署 CK-CLUB 後端到 Render
+
+services:
+  - type: web
+    name: ck-club-backend
+    env: node
+    region: singapore # 選擇最近的區域
+    plan: free # 免費方案
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+
+    # 環境變數（敏感資訊請在 Render Dashboard 設定）
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: DEV_MODE
+        value: false
+
+      - key: PORT
+        value: 3000
+
+      - key: HOST
+        value: 0.0.0.0
+
+      # Firebase 配置（從 Render Dashboard 設定）
+      # - key: FIREBASE_PROJECT_ID
+      #   sync: false
+
+      # - key: FIREBASE_SERVICE_ACCOUNT
+      #   sync: false
+
+      # Email 配置（從 Render Dashboard 設定）
+      # - key: USE_SENDGRID
+      #   value: true
+
+      # - key: SENDGRID_API_KEY
+      #   sync: false
+
+      # - key: SYSTEM_EMAIL
+      #   sync: false
+
+      # - key: ALLOWED_EMAIL_DOMAIN
+      #   value: gl.ck.tp.edu.tw
+# 注意事項：
+# 1. 將此檔案放在專案根目錄
+# 2. 敏感資訊請在 Render Dashboard 手動設定，不要提交到 Git
+# 3. Service Account JSON 需要轉換為單行字串
+# 4. 確認 backend/package.json 中有正確的 start script

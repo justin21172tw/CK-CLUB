@@ -4,13 +4,18 @@ import { signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from 
 import { auth, googleProvider } from 'src/boot/vuefire'
 import axios from 'axios'
 
-const API_BASE = 'http://localhost:3000/api'
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api'
+
+// 開發模式設定
+const DEV_MODE = import.meta.env.DEV || import.meta.env.MODE === 'development'
+const DEV_BYPASS_TOKEN = import.meta.env.VITE_DEV_BYPASS_TOKEN || 'dev-admin-token-12345'
 
 // 全局狀態
 const currentUser = ref(null)
 const userRole = ref(null)
 const loading = ref(true)
 const error = ref(null)
+const isDevMode = ref(false)
 
 // 初始化認證狀態監聽
 onAuthStateChanged(auth, async (user) => {
@@ -50,6 +55,29 @@ onAuthStateChanged(auth, async (user) => {
 })
 
 export function useAuth() {
+  // 🔧 開發模式：使用本地 admin 帳號
+  const signInAsDev = () => {
+    if (!DEV_MODE) {
+      console.error('開發模式未啟用')
+      return { success: false, error: '開發模式未啟用' }
+    }
+
+    console.log('🔧 [DEV MODE] Signing in as local admin')
+
+    currentUser.value = {
+      uid: 'dev-admin-uid',
+      email: 'dev-admin@localhost',
+      displayName: '本地管理員 (DEV)',
+      photoURL: null,
+      getIdToken: async () => DEV_BYPASS_TOKEN,
+    }
+
+    userRole.value = 'admin'
+    isDevMode.value = true
+    error.value = null
+
+    return { success: true, user: currentUser.value }
+  }
   // 使用 Google 登入
   const signIn = async () => {
     try {
@@ -104,6 +132,12 @@ export function useAuth() {
   // 獲取當前 ID Token (用於 API 請求)
   const getIdToken = async () => {
     if (!currentUser.value) return null
+
+    // 開發模式直接返回 bypass token
+    if (isDevMode.value) {
+      return DEV_BYPASS_TOKEN
+    }
+
     return await currentUser.value.getIdToken()
   }
 
@@ -118,9 +152,11 @@ export function useAuth() {
     userRole,
     loading,
     error,
+    isDevMode,
 
     // Methods
     signIn,
+    signInAsDev, // 開發模式登入
     signOut,
     getIdToken,
 
@@ -128,5 +164,8 @@ export function useAuth() {
     isAuthenticated,
     isAdmin,
     isTeacher,
+
+    // Dev mode flag
+    DEV_MODE,
   }
 }
