@@ -10,12 +10,8 @@
         "destination": "/main.html"
       }
     ],
-    "public": "dist/spa",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ]
+    "public": "frontend/dist/spa",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
   },
   "storage": {
     "rules": "storage.rules"
