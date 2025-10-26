@@ -12,7 +12,7 @@ const routes = [
   {
     path: '/application',
     component: () => import('layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('pages/ApplicationPage.vue') }],
+    children: [{ path: '', component: () => import('src/pages/ApplicationPage_.vue') }],
   },
   {
     path: '/upload',

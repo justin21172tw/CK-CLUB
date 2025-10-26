@@ -54,7 +54,7 @@ export async function verifyAuth(request, reply) {
  * 檢查是否為台北市教育帳號
  */
 export function checkEducationDomain(email) {
-  const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || 'tp.edu.tw'
+  const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || 'gl.ck.tp.edu.tw'
   return email && email.endsWith(`@${allowedDomain}`)
 }
 

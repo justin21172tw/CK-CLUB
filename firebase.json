@@ -3,11 +3,28 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20",
+    "codebase": "default"
+  },
   "hosting": {
     "rewrites": [
       {
+        "source": "/api/auth/**",
+        "function": "authVerify"
+      },
+      {
+        "source": "/api/submissions/**",
+        "function": "submissionCreate"
+      },
+      {
+        "source": "/api/templates/**",
+        "function": "templateList"
+      },
+      {
         "source": "**",
-        "destination": "/main.html"
+        "destination": "/index.html"
       }
     ],
     "public": "frontend/dist/spa",
@@ -15,5 +32,23 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "emulators": {
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    }
   }
 }
