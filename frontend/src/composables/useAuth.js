@@ -1,49 +1,25 @@
-// src/composables/useAuth.js
+// Authentication composable with Firebase and dev mode support
 import { ref, computed } from 'vue'
 import { signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth'
 import { auth, googleProvider } from 'src/boot/vuefire'
 import axios from 'axios'
+import { ENV, getApiEndpoint } from 'src/config/env'
 
-// API 配置
-const USE_CLOUD_FUNCTIONS = import.meta.env.VITE_USE_CLOUD_FUNCTIONS === 'true'
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api'
-
-// 根據是否使用 Cloud Functions 決定 API 端點
-const getApiEndpoint = (path) => {
-  if (USE_CLOUD_FUNCTIONS) {
-    // Cloud Functions 格式: http://host:port/project-id/region/functionName
-    // 例如: http://127.0.0.1:5001/ck-cl-24edb/us-central1/authVerify
-    const functionName = path.replace('/auth/', 'auth')
-      .replace('verify', 'Verify')
-      .replace('me', 'GetMe')
-    return `${API_BASE}/${functionName}`
-  } else {
-    // 傳統 Backend API 格式: http://host:port/api/path
-    return `${API_BASE}${path}`
-  }
-}
-
-// 開發模式設定
-const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV
-const DEV_BYPASS_TOKEN = import.meta.env.VITE_DEV_BYPASS_TOKEN || 'dev-admin-token-12345'
-
-// 全局狀態
+// Global state
 const currentUser = ref(null)
 const userRole = ref(null)
 const loading = ref(true)
 const error = ref(null)
 const isDevMode = ref(false)
 
-// 初始化認證狀態監聽
+// Initialize auth state listener
 onAuthStateChanged(auth, async (user) => {
   loading.value = true
 
   if (user) {
     try {
-      // 獲取 ID Token
       const idToken = await user.getIdToken()
 
-      // 向 Cloud Functions 驗證並獲取角色
       const endpoint = getApiEndpoint('/auth/verify')
       const response = await axios.post(
         endpoint,
@@ -59,8 +35,8 @@ onAuthStateChanged(auth, async (user) => {
       userRole.value = response.data.user.role
       error.value = null
     } catch (err) {
-      console.error('認證失敗:', err)
-      error.value = err.response?.data?.message || '認證失敗'
+      console.error('Authentication failed:', err)
+      error.value = err.response?.data?.message || 'Authentication failed'
       currentUser.value = null
       userRole.value = null
     }
@@ -73,21 +49,21 @@ onAuthStateChanged(auth, async (user) => {
 })
 
 export function useAuth() {
-  // 🔧 開發模式：使用本地 admin 帳號
+  // Dev mode: sign in as local admin
   const signInAsDev = () => {
-    if (!DEV_MODE) {
-      console.error('開發模式未啟用')
-      return { success: false, error: '開發模式未啟用' }
+    if (!ENV.DEV_MODE) {
+      console.error('Dev mode not enabled')
+      return { success: false, error: 'Dev mode not enabled' }
     }
 
-    console.log('🔧 [DEV MODE] Signing in as local admin')
+    console.log('[DEV MODE] Signing in as local admin')
 
     currentUser.value = {
       uid: 'dev-admin-uid',
       email: 'dev-admin@localhost',
-      displayName: '本地管理員 (DEV)',
+      displayName: 'Local Admin (DEV)',
       photoURL: null,
-      getIdToken: async () => DEV_BYPASS_TOKEN,
+      getIdToken: async () => ENV.DEV_BYPASS_TOKEN,
     }
 
     userRole.value = 'admin'
@@ -96,7 +72,8 @@ export function useAuth() {
 
     return { success: true, user: currentUser.value }
   }
-  // 使用 Google 登入
+
+  // Sign in with Google
   const signIn = async () => {
     try {
       loading.value = true
@@ -105,7 +82,6 @@ export function useAuth() {
       const result = await signInWithPopup(auth, googleProvider)
       const idToken = await result.user.getIdToken()
 
-      // 向 Cloud Functions 驗證
       const endpoint = getApiEndpoint('/auth/verify')
       const response = await axios.post(
         endpoint,
@@ -122,15 +98,15 @@ export function useAuth() {
 
       return { success: true, user: result.user }
     } catch (err) {
-      console.error('登入失敗:', err)
-      error.value = err.response?.data?.message || err.message || '登入失敗'
+      console.error('Sign in failed:', err)
+      error.value = err.response?.data?.message || err.message || 'Sign in failed'
       return { success: false, error: error.value }
     } finally {
       loading.value = false
     }
   }
 
-  // 登出
+  // Sign out
   const signOut = async () => {
     try {
       loading.value = true
@@ -140,7 +116,7 @@ export function useAuth() {
       error.value = null
       return { success: true }
     } catch (err) {
-      console.error('登出失敗:', err)
+      console.error('Sign out failed:', err)
       error.value = err.message
       return { success: false, error: error.value }
     } finally {
@@ -148,19 +124,19 @@ export function useAuth() {
     }
   }
 
-  // 獲取當前 ID Token (用於 API 請求)
+  // Get current ID token for API requests
   const getIdToken = async () => {
     if (!currentUser.value) return null
 
-    // 開發模式直接返回 bypass token
+    // Dev mode: return bypass token directly
     if (isDevMode.value) {
-      return DEV_BYPASS_TOKEN
+      return ENV.DEV_BYPASS_TOKEN
     }
 
     return await currentUser.value.getIdToken()
   }
 
-  // 獲取當前用戶資訊（從 Cloud Functions）
+  // Get current user info from backend
   const getCurrentUser = async () => {
     try {
       const token = await getIdToken()
@@ -175,7 +151,7 @@ export function useAuth() {
 
       return response.data.user
     } catch (err) {
-      console.error('獲取用戶資訊失敗:', err)
+      console.error('Failed to get user info:', err)
       return null
     }
   }
@@ -195,18 +171,18 @@ export function useAuth() {
 
     // Methods
     signIn,
-    signInAsDev, // 開發模式登入
+    signInAsDev,
     signOut,
     getIdToken,
-    getCurrentUser, // 獲取當前用戶資訊
+    getCurrentUser,
 
     // Computed
     isAuthenticated,
     isAdmin,
     isTeacher,
 
-    // Dev mode flag
-    DEV_MODE,
-    USE_CLOUD_FUNCTIONS, // 是否使用 Cloud Functions
+    // Config flags (deprecated, use ENV directly)
+    DEV_MODE: ENV.DEV_MODE,
+    USE_CLOUD_FUNCTIONS: ENV.USE_CLOUD_FUNCTIONS,
   }
 }

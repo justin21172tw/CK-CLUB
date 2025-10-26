@@ -1,18 +1,18 @@
-// src/services/api.js
+// API service layer for backend communication
 import axios from 'axios'
 import { auth } from 'src/boot/vuefire'
+import { ENV } from 'src/config/env'
+import { downloadFromResponse } from 'src/utils/fileDownload'
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api'
-
-// 創建 axios 實例
+// Create axios instance
 const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: ENV.API_BASE,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// 請求攔截器:自動添加 Authorization header
+// Request interceptor: auto-attach Authorization header
 api.interceptors.request.use(
   async (config) => {
     const user = auth.currentUser
@@ -27,7 +27,7 @@ api.interceptors.request.use(
   },
 )
 
-// 回應攔截器:統一錯誤處理
+// Response interceptor: unified error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -37,15 +37,15 @@ api.interceptors.response.use(
   },
 )
 
-// ==================== 提交 API ====================
+// ==================== Submission API ====================
 
 /**
- * 提交外聘教師資料 (公開 API，不需要身份驗證)
- * @param {FormData} formData - 包含文字欄位和檔案
+ * Submit external teacher data (public API, no authentication required)
+ * @param {FormData} formData - Contains text fields and files
  */
 export async function createSubmission(formData) {
-  // 使用普通 axios 而非 api 實例，避免自動添加 Authorization header
-  const response = await axios.post(`${API_BASE}/submissions`, formData, {
+  // Use plain axios instead of api instance to avoid auto-attaching Authorization header
+  const response = await axios.post(`${ENV.API_BASE}/submissions`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -54,8 +54,8 @@ export async function createSubmission(formData) {
 }
 
 /**
- * 獲取所有提交 (管理員)
- * @param {Object} params - 查詢參數 { status, club, limit }
+ * Get all submissions (admin only)
+ * @param {Object} params - Query params { status, club, limit }
  */
 export async function getSubmissions(params = {}) {
   const response = await api.get('/submissions', { params })
@@ -63,8 +63,8 @@ export async function getSubmissions(params = {}) {
 }
 
 /**
- * 獲取單筆提交
- * @param {string} id - 提交 ID
+ * Get single submission
+ * @param {string} id - Submission ID
  */
 export async function getSubmission(id) {
   const response = await api.get(`/submissions/${id}`)
@@ -72,8 +72,8 @@ export async function getSubmission(id) {
 }
 
 /**
- * 更新提交狀態 (管理員)
- * @param {string} id - 提交 ID
+ * Update submission status (admin only)
+ * @param {string} id - Submission ID
  * @param {Object} data - { status, reviewNote }
  */
 export async function updateSubmissionStatus(id, data) {
@@ -82,8 +82,8 @@ export async function updateSubmissionStatus(id, data) {
 }
 
 /**
- * 刪除提交 (管理員)
- * @param {string} id - 提交 ID
+ * Delete submission (admin only)
+ * @param {string} id - Submission ID
  */
 export async function deleteSubmission(id) {
   const response = await api.delete(`/submissions/${id}`)
@@ -91,49 +91,22 @@ export async function deleteSubmission(id) {
 }
 
 /**
- * 批量下載提交的所有檔案 (ZIP)
- * @param {string} id - 提交 ID
- * @param {string} filename - 檔案名稱（用於 ZIP 名稱）
+ * Batch download all submission files as ZIP
+ * @param {string} id - Submission ID
+ * @param {string} filename - Filename for ZIP
  */
 export async function downloadSubmissionFiles(id, filename = 'submission') {
   const response = await api.get(`/submissions/${id}/download-all`, {
     responseType: 'blob',
   })
 
-  // 從 Content-Disposition header 獲取檔名
-  const contentDisposition = response.headers['content-disposition']
-  let zipFilename = `${filename}.zip`
-
-  if (contentDisposition) {
-    const match = contentDisposition.match(/filename="(.+)"/)
-    if (match) {
-      zipFilename = decodeURIComponent(match[1])
-    }
-  }
-
-  // 創建 blob URL 並觸發下載
-  const blob = new Blob([response.data], { type: 'application/zip' })
-  const url = window.URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = zipFilename
-  link.style.display = 'none'
-
-  document.body.appendChild(link)
-  link.click()
-
-  setTimeout(() => {
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
-  }, 100)
-
-  return { success: true, filename: zipFilename }
+  return downloadFromResponse(response, `${filename}.zip`)
 }
 
 /**
- * 新增訊息/回覆
- * @param {string} id - 提交 ID
- * @param {string} content - 訊息內容
+ * Add message/reply to submission
+ * @param {string} id - Submission ID
+ * @param {string} content - Message content
  */
 export async function addSubmissionMessage(id, content) {
   const response = await api.post(`/submissions/${id}/messages`, { content })
@@ -141,18 +114,18 @@ export async function addSubmissionMessage(id, content) {
 }
 
 /**
- * 獲取訊息列表
- * @param {string} id - 提交 ID
+ * Get submission messages
+ * @param {string} id - Submission ID
  */
 export async function getSubmissionMessages(id) {
   const response = await api.get(`/submissions/${id}/messages`)
   return response.data
 }
 
-// ==================== 範本 API ====================
+// ==================== Template API ====================
 
 /**
- * 獲取範本列表
+ * Get template list
  */
 export async function getTemplates() {
   const response = await api.get('/templates')
@@ -160,91 +133,21 @@ export async function getTemplates() {
 }
 
 /**
- * 下載範本檔案
- * @param {string} id - 範本 ID
+ * Download template file
+ * @param {string} id - Template ID
  */
 export async function downloadTemplate(id) {
-  console.log('[downloadTemplate] Starting download for:', id)
-
   const response = await api.get(`/templates/download/${id}`, {
     responseType: 'blob',
   })
 
-  console.log('[downloadTemplate] Response received:', {
-    status: response.status,
-    contentType: response.headers['content-type'],
-    contentDisposition: response.headers['content-disposition'],
-    dataSize: response.data.size,
-  })
-
-  // 從 Content-Disposition header 獲取檔名
-  const contentDisposition = response.headers['content-disposition']
-  let filename = `template-${id}.pdf`
-
-  if (contentDisposition) {
-    const match = contentDisposition.match(/filename="(.+)"/)
-    if (match) {
-      filename = match[1]
-    }
-  }
-
-  console.log('[downloadTemplate] Parsed filename:', filename)
-
-  // 獲取正確的 MIME type
-  const mimeType = response.headers['content-type'] || 'application/octet-stream'
-
-  // 創建 blob URL 並觸發下載
-  const blob = new Blob([response.data], { type: mimeType })
-  console.log('[downloadTemplate] Blob created:', {
-    size: blob.size,
-    type: blob.type,
-  })
-
-  const url = window.URL.createObjectURL(blob)
-  console.log('[downloadTemplate] Blob URL created:', url)
-
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.style.display = 'none'
-
-  console.log('[downloadTemplate] Link element created:', {
-    href: link.href,
-    download: link.download,
-  })
-
-  document.body.appendChild(link)
-  console.log('[downloadTemplate] Link appended to body')
-
-  // 使用 setTimeout 確保 DOM 更新完成
-  setTimeout(() => {
-    console.log('[downloadTemplate] Triggering click...')
-    link.click()
-    console.log('[downloadTemplate] Click triggered')
-
-    // 短暫延遲後清理
-    setTimeout(() => {
-      console.log('[downloadTemplate] Cleaning up...')
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-      console.log('[downloadTemplate] Cleanup completed')
-    }, 100)
-  }, 0)
-
-  return { success: true, filename }
+  return downloadFromResponse(response, `template-${id}.pdf`)
 }
 
-/**
- * 獲取範本下載連結（已廢棄，使用 downloadTemplate 代替）
- * @param {string} id - 範本 ID
- * @deprecated
- */
-export async function getTemplateDownloadUrl(id) {
-  return downloadTemplate(id)
-} // ==================== 用戶 API ====================
+// ==================== User API ====================
 
 /**
- * 獲取當前用戶資訊
+ * Get current user info
  */
 export async function getCurrentUser() {
   const response = await api.get('/auth/me')
