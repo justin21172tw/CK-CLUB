@@ -3,7 +3,7 @@
     <q-card flat bordered class="q-pa-lg q-mx-auto" style="max-width: 600px; width: 100%">
       <q-card-section class="column items-center">
         <q-img
-          src="../../public/icons/CKHS-LOGO.png"
+          src="../../../public/icons/CKHS-LOGO.png"
           alt="cklogo"
           style="max-width: 50%; max-height: 50%"
           fit="contain"

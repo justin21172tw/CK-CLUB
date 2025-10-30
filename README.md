@@ -56,6 +56,7 @@ npm install
 Create `.env` files in the appropriate directories:
 
 **Frontend** (`frontend/.env`):
+
 ```env
 VITE_API_BASE=http://localhost:3000/api
 VITE_USE_CLOUD_FUNCTIONS=false
@@ -64,6 +65,7 @@ VITE_DEV_BYPASS_TOKEN=dev-admin-token-12345
 ```
 
 **Backend** (`backend/.env`):
+
 ```env
 PORT=3000
 NODE_ENV=development
@@ -105,6 +107,7 @@ npm run build
 ## Tech Stack
 
 ### Frontend
+
 - **Framework**: Quasar Framework v2 (Vue 3)
 - **State Management**: Vue Composition API
 - **Authentication**: Firebase Auth
@@ -112,6 +115,7 @@ npm run build
 - **Styling**: SCSS + Quasar Components
 
 ### Backend
+
 - **Runtime**: Node.js
 - **Framework**: Fastify (or Express)
 - **Database**: Firebase Firestore
@@ -150,4 +154,3 @@ This project is proprietary and confidential.
 - **Author**: ChrisSun0731
 - **Email**: chris20090731@gmail.com
 - **Repository**: https://github.com/ChrisSun0731/CK-CLUB
-

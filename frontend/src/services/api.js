@@ -128,7 +128,7 @@ export async function getSubmissionMessages(id) {
  * Get template list
  */
 export async function getTemplates() {
-  const response = await api.get('/templates')
+  const response = await api.get('/templateList')
   return response.data
 }
 
@@ -137,7 +137,8 @@ export async function getTemplates() {
  * @param {string} id - Template ID
  */
 export async function downloadTemplate(id) {
-  const response = await api.get(`/templates/download/${id}`, {
+  const response = await api.get('/templateDownload', {
+    params: { id },
     responseType: 'blob',
   })
 

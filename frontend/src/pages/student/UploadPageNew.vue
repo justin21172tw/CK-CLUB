@@ -195,11 +195,21 @@
                   <q-icon name="picture_as_pdf" color="red" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>{{ template.name }}</q-item-label>
-                  <q-item-label caption>{{ template.description }}</q-item-label>
+                  <q-item-label>{{ template.name || template.filename }}</q-item-label>
+                  <q-item-label caption>{{ template.description || '點擊下載' }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-icon name="download" />
+                </q-item-section>
+              </q-item>
+
+              <!-- 空狀態 -->
+              <q-item v-if="templates.length === 0">
+                <q-item-section class="text-center text-grey-6">
+                  <div class="q-pa-md">
+                    <q-icon name="folder_open" size="48px" class="q-mb-sm" />
+                    <div>尚無可用範本</div>
+                  </div>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -268,13 +278,24 @@ const submitting = ref(false)
 onMounted(async () => {
   try {
     const response = await getTemplates()
-    templates.value = response.data
-  } catch (error) {
-    console.error('載入範本失敗:', error)
-  }
-})
 
-// 提交表單
+    // 處理不同的響應格式
+    if (response.templates) {
+      templates.value = response.templates
+    } else if (response.data) {
+      templates.value = response.data
+    } else if (Array.isArray(response)) {
+      templates.value = response
+    }
+  } catch (error) {
+    console.error('[onMounted] 載入範本失敗:', error)
+    $q.notify({
+      type: 'negative',
+      message: '載入範本列表失敗',
+      caption: error.message,
+    })
+  }
+}) // 提交表單
 async function onSubmit() {
   console.log('[onSubmit] Starting form submission...')
   console.log('[onSubmit] Form data:', formData.value)
@@ -350,7 +371,7 @@ async function handleDownloadTemplate(templateId) {
     })
 
     const result = await downloadTemplate(templateId)
-    // TODOS : downloaded file name may not be correct
+
     $q.notify({
       type: 'positive',
       message: `範本「${result.filename}」下載成功`,
@@ -367,6 +388,8 @@ async function handleDownloadTemplate(templateId) {
       errorMessage = '伺服器錯誤，請稍後再試'
     } else if (error.message === 'Network Error') {
       errorMessage = '網路連線錯誤，請檢查網路連線或確認後端服務是否啟動'
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
     }
 
     $q.notify({
@@ -377,9 +400,7 @@ async function handleDownloadTemplate(templateId) {
   } finally {
     $q.loading.hide()
   }
-}
-
-// 檔案拒絕處理
+} // 檔案拒絕處理
 function onFileRejected(rejectedEntries) {
   $q.notify({
     type: 'negative',

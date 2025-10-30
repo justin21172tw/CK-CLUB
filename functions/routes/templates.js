@@ -48,7 +48,7 @@ export const list = onRequest({ cors: true }, async (req, res) => {
 
 /**
  * 下載範本
- * GET /api/templates/download/:id
+ * GET /templateDownload?id=xxx
  */
 export const download = onRequest({ cors: true }, async (req, res) => {
   if (req.method !== "GET") {
@@ -56,37 +56,38 @@ export const download = onRequest({ cors: true }, async (req, res) => {
   }
 
   try {
-    // 從 URL 中提取文件 ID
-    const fileId = req.path.split("/").pop();
+    // 從查詢參數獲取文件 ID
+    const fileId = req.query.id;
 
     if (!fileId) {
       return res.status(400).json({
         error: "Bad Request",
-        message: "Missing file ID",
+        message: "Missing file ID parameter",
       });
     }
+
+    // 先獲取文件元數據
+    const { getFileMetadata } = await import("../config/drive.js");
+    const metadata = await getFileMetadata(fileId);
 
     // 從 Google Drive 下載文件
     const fileBuffer = await downloadFromDrive(fileId);
 
-    // 獲取文件元數據以設置正確的 Content-Type
-    const { getFileMetadata } = await import("../config/drive.js");
-    const metadata = await getFileMetadata(fileId);
-
+    // 設置響應頭
     res.setHeader(
       "Content-Type",
       metadata.mimeType || "application/octet-stream"
     );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${metadata.name}"`
+      `attachment; filename="${encodeURIComponent(metadata.name)}"`
     );
     res.setHeader("Content-Length", fileBuffer.length);
 
     // 發送文件
-    res.send(fileBuffer);
+    return res.send(fileBuffer);
   } catch (error) {
-    console.error("Template download error:", error);
+    console.error("[templateDownload] Error:", error.message);
     return res.status(500).json({
       error: "Internal Server Error",
       message: error.message,
