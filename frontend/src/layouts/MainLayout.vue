@@ -179,7 +179,6 @@ function toggleDark() {
 const linksList = [
   { title: '活動申請', icon: 'article', link: '/application' },
   { title: '公告', icon: 'campaign', link: '/announcement' },
-  { title: '教師資料上傳', icon: 'cloud', link: '/upload' },
   { title: '主控台', icon: 'dashboard', link: '/dashboard' },
 ]
 </script>

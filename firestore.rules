@@ -41,6 +41,51 @@ service cloud.firestore {
                       request.auth.token.role == 'admin';
     }
     
+    // 儀表板資料（dashboard）
+    match /dashboards/{userId} {
+      // 用戶只能讀取自己的儀表板資料
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // 管理員可以讀取所有儀表板資料
+      allow read: if request.auth != null && 
+                     request.auth.token.role == 'admin';
+      
+      // 用戶可以更新自己的儀表板設定（如標記為已讀等）
+      allow update: if request.auth != null && request.auth.uid == userId;
+      
+      // 只有管理員可以創建和刪除儀表板資料
+      allow create, delete: if request.auth != null && 
+                               request.auth.token.role == 'admin';
+    }
+    
+    // 活動記錄（activities）
+    match /activities/{activityId} {
+      // 用戶可以讀取與自己相關的活動
+      allow read: if request.auth != null && 
+                     resource.data.userId == request.auth.uid;
+      
+      // 管理員可以讀取所有活動
+      allow read: if request.auth != null && 
+                     request.auth.token.role == 'admin';
+      
+      // 系統自動創建活動記錄
+      allow create: if request.auth != null;
+      
+      // 只有管理員可以更新和刪除活動記錄
+      allow update, delete: if request.auth != null && 
+                               request.auth.token.role == 'admin';
+    }
+    
+    // 公告資料（announcements）
+    match /announcements/{announcementId} {
+      // 所有已認證用戶都可以讀取公告
+      allow read: if request.auth != null;
+      
+      // 只有管理員可以創建、更新、刪除公告
+      allow create, update, delete: if request.auth != null && 
+                                        request.auth.token.role == 'admin';
+    }
+    
     // 設定資料（settings）
     match /settings/{document=**} {
       // 任何人都可以讀取設定
