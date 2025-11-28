@@ -6,21 +6,24 @@ A comprehensive club management system built with Quasar Framework and Firebase.
 
 ```
 CK-CLUB/
-├── frontend/          # Quasar frontend application
+├── frontend/          # Quasar frontend application (Vue 3 + Quasar)
 │   ├── src/
 │   │   ├── boot/      # Boot files (Firebase, etc.)
 │   │   ├── components/ # Reusable Vue components
-│   │   ├── composables/ # Vue composables (useAuth, etc.)
+│   │   ├── composables/ # Vue composables (useAuth, useDashboard)
 │   │   ├── config/    # Configuration files (env, constants)
 │   │   ├── layouts/   # Layout components
-│   │   ├── pages/     # Page components
+│   │   ├── pages/     # Page components (admin/, student/, dev/)
 │   │   ├── router/    # Vue Router configuration
 │   │   ├── services/  # API service layer
 │   │   └── utils/     # Utility functions
 │   └── public/        # Static assets
-├── backend/           # Backend API server
-├── functions/         # Firebase Cloud Functions
-└── docs/             # Public documentation
+├── functions/         # Firebase Cloud Functions (Backend API)
+│   ├── config/        # Drive configuration
+│   ├── routes/        # API routes (auth, submissions, templates)
+│   └── index.js       # Cloud Functions exports
+├── docs/              # Public documentation
+└── docs-internal/     # Internal development docs
 ```
 
 ## Features
@@ -58,30 +61,46 @@ Create `.env` files in the appropriate directories:
 **Frontend** (`frontend/.env`):
 
 ```env
-VITE_API_BASE=http://localhost:3000/api
-VITE_USE_CLOUD_FUNCTIONS=false
+VITE_API_BASE=http://localhost:5001/ck-cl-24edb/us-central1
+VITE_USE_CLOUD_FUNCTIONS=true
 VITE_DEV_MODE=true
 VITE_DEV_BYPASS_TOKEN=dev-admin-token-12345
+
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
 ```
 
-**Backend** (`backend/.env`):
+**Cloud Functions** (`functions/.env`):
 
 ```env
-PORT=3000
-NODE_ENV=development
+GOOGLE_DRIVE_FOLDER_TEMPLATES=your-templates-folder-id
+GOOGLE_DRIVE_FOLDER_SUBMISSIONS=your-submissions-folder-id
 ```
 
 ### Development
 
 ```bash
-# Start frontend dev server
+# Start Firebase emulators (backend + hosting)
+firebase emulators:start
+
+# In another terminal, start frontend dev server
 cd frontend
 npm run dev
 
-# Start backend server (in another terminal)
-cd backend
-npm start
+# Or use the monorepo script (if configured)
+npm run dev
 ```
+
+The application will be available at:
+
+- Frontend: `http://localhost:9000` (Quasar dev server)
+- Cloud Functions: `http://localhost:5001`
+- Firebase UI: `http://localhost:4000`
 
 ### Build for Production
 
@@ -114,13 +133,14 @@ npm run build
 - **HTTP Client**: Axios
 - **Styling**: SCSS + Quasar Components
 
-### Backend
+### Backend (Cloud Functions)
 
-- **Runtime**: Node.js
-- **Framework**: Fastify (or Express)
+- **Runtime**: Node.js 20
+- **Platform**: Firebase Cloud Functions v2
 - **Database**: Firebase Firestore
-- **Storage**: Firebase Storage
+- **Storage**: Google Drive API + Firebase Storage
 - **Authentication**: Firebase Admin SDK
+- **File Processing**: Busboy, Archiver
 
 ## Documentation
 

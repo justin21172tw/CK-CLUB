@@ -9,10 +9,16 @@ const routes = [
 
       // Student
       { path: 'dashboard', component: () => import('pages/student/dashboard/DashboardPage.vue') },
-      { path: 'application', component: () => import('pages/student/ApplicationPage.vue') },
-      { path: 'announcement', component: () => import('pages/student/AnnouncementPage.vue') },
-      { path: 'notice', component: () => import('pages/student/NoticePage.vue') },
-      { path: 'upload', component: () => import('pages/student/UploadPageNew.vue') },
+      {
+        path: 'application',
+        component: () => import('pages/student/Application/ApplicationPage.vue'),
+      },
+      {
+        path: 'announcement',
+        component: () => import('pages/student/Announcement/AnnouncementPage.vue'),
+      },
+      { path: 'notice', component: () => import('pages/student/notice/NoticePage.vue') },
+      { path: 'upload', component: () => import('pages/student/upload/UploadPage.vue') },
 
       // Admin
       { path: 'admin', component: () => import('pages/admin/AdminPage.vue') },
@@ -24,10 +30,12 @@ const routes = [
       { path: 'skip', component: () => import('pages/dev/SkipPage.vue') },
     ],
   },
+  /* upload page redirect
   {
     path: '/uploadnew',
     redirect: '/upload',
   },
+  */
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue'),

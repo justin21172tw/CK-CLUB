@@ -1,104 +1,100 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // 提交資料（submissions）
-    match /submissions/{submissionId} {
-      // 任何人都可以創建提交（因為是公開表單）
-      allow create: if true;
-      
-      // 只有管理員可以讀取、更新、刪除
-      allow read, update, delete: if request.auth != null && 
-                                      request.auth.token.role == 'admin';
-      
-      // 提交者本人可以讀取自己的提交
-      allow read: if request.auth != null && 
-                     resource.data.submittedBy == request.auth.uid;
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
     }
     
-    // 範本資料（templates）
-    match /templates/{templateId} {
-      // 任何人都可以讀取範本列表
-      allow read: if true;
-      
-      // 只有管理員可以創建、更新、刪除範本
-      allow create, update, delete: if request.auth != null && 
-                                        request.auth.token.role == 'admin';
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // 用戶資料（users）
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role in ['admin', 'president'];
+    }
+    
+    function isOfficer() {
+      return isAuthenticated() && getUserData().role in ['admin', 'president', 'officer'];
+    }
+    
+    // Users collection
     match /users/{userId} {
-      // 用戶只能讀取自己的資料
-      allow read: if request.auth != null && request.auth.uid == userId;
+      // Read: own data or admin/officer
+      allow read: if isOwner(userId) || isOfficer();
       
-      // 管理員可以讀取所有用戶資料
-      allow read: if request.auth != null && 
-                     request.auth.token.role == 'admin';
+      // Create: authenticated users can create their own profile
+      allow create: if isAuthenticated() && request.auth.uid == userId;
       
-      // 只有管理員可以寫入用戶資料
-      allow write: if request.auth != null && 
-                      request.auth.token.role == 'admin';
+      // Update: own data (but can't change role) or admin
+      allow update: if (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) 
+                    || isAdmin();
+      
+      // Delete: admin only
+      allow delete: if isAdmin();
     }
     
-    // 儀表板資料（dashboard）
-    match /dashboards/{userId} {
-      // 用戶只能讀取自己的儀表板資料
-      allow read: if request.auth != null && request.auth.uid == userId;
-      
-      // 管理員可以讀取所有儀表板資料
-      allow read: if request.auth != null && 
-                     request.auth.token.role == 'admin';
-      
-      // 用戶可以更新自己的儀表板設定（如標記為已讀等）
-      allow update: if request.auth != null && request.auth.uid == userId;
-      
-      // 只有管理員可以創建和刪除儀表板資料
-      allow create, delete: if request.auth != null && 
-                               request.auth.token.role == 'admin';
-    }
-    
-    // 活動記錄（activities）
+    // Activities collection
     match /activities/{activityId} {
-      // 用戶可以讀取與自己相關的活動
-      allow read: if request.auth != null && 
-                     resource.data.userId == request.auth.uid;
+      // Read: all authenticated users
+      allow read: if isAuthenticated();
       
-      // 管理員可以讀取所有活動
-      allow read: if request.auth != null && 
-                     request.auth.token.role == 'admin';
+      // Create: officers and admins only
+      allow create: if isOfficer();
       
-      // 系統自動創建活動記錄
-      allow create: if request.auth != null;
+      // Update: officers and admins only
+      allow update: if isOfficer();
       
-      // 只有管理員可以更新和刪除活動記錄
-      allow update, delete: if request.auth != null && 
-                               request.auth.token.role == 'admin';
+      // Delete: admin only
+      allow delete: if isAdmin();
     }
     
-    // 公告資料（announcements）
-    match /announcements/{announcementId} {
-      // 所有已認證用戶都可以讀取公告
-      allow read: if request.auth != null;
+    // Applications collection
+    match /applications/{applicationId} {
+      // Read: own applications or officers/admins
+      allow read: if isAuthenticated() && 
+                    (resource.data.userId == request.auth.uid || isOfficer());
       
-      // 只有管理員可以創建、更新、刪除公告
-      allow create, update, delete: if request.auth != null && 
-                                        request.auth.token.role == 'admin';
+      // Create: authenticated users for their own applications
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Update: own applications (limited fields) or officers/admins (all fields)
+      allow update: if (isAuthenticated() && resource.data.userId == request.auth.uid 
+                        && !request.resource.data.diff(resource.data).affectedKeys()
+                           .hasAny(['approvalStatus', 'reviewedBy', 'reviewedAt']))
+                    || isOfficer();
+      
+      // Delete: admin only
+      allow delete: if isAdmin();
     }
     
-    // 設定資料（settings）
-    match /settings/{document=**} {
-      // 任何人都可以讀取設定
-      allow read: if true;
+    // Notifications collection
+    match /notifications/{notificationId} {
+      // Read: own notifications
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       
-      // 只有管理員可以修改設定
-      allow write: if request.auth != null && 
-                      request.auth.token.role == 'admin';
+      // Create: system/backend creates notifications
+      allow create: if isAuthenticated();
+      
+      // Update: own notifications (e.g., mark as read)
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Delete: own notifications or admin
+      allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid) 
+                    || isAdmin();
     }
     
-    // 預設：拒絕所有其他存取
-    match /{document=**} {
-      allow read, write: if false;
+    // Settings collection (system-wide settings)
+    match /settings/{settingId} {
+      // Read: all authenticated users
+      allow read: if isAuthenticated();
+      
+      // Write: admin only
+      allow write: if isAdmin();
     }
   }
 }

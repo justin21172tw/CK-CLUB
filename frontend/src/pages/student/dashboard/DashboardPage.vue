@@ -178,6 +178,13 @@
       </q-card>
     </q-dialog>
 
+    <!-- 活動選項對話框 -->
+    <activity-options-dialog
+      v-model="showActivityOptionsDialog"
+      @confirm="handleActivityOptionsConfirm"
+      @cancel="handleActivityOptionsCancel"
+    />
+
     <!-- 確認對話框 -->
     <confirm-dialog
       v-model="showConfirmDialog"
@@ -201,6 +208,7 @@ import { useAuth } from 'src/composables/useAuth'
 import { useDashboard } from 'src/composables/useDashboard'
 import DashboardStatCard from './components/DashboardStatCard.vue'
 import ConfirmDialog from 'src/components/ConfirmDialog.vue'
+import ActivityOptionsDialog from 'src/components/ActivityOptionsDialog.vue'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -212,10 +220,12 @@ const userName = computed(() => currentUser.value?.displayName || '學生')
 
 // 控制懸浮視窗顯示
 const showSubmissionDialog = ref(false)
+const showActivityOptionsDialog = ref(false)
 const showConfirmDialog = ref(false)
 
 // 暫存選擇的提交類型
 const pendingSubmissionType = ref(null)
+const pendingActivityOptions = ref(null)
 
 // 確認對話框設定
 const confirmConfig = ref({
@@ -275,12 +285,50 @@ const handleSubmissionClick = (type) => {
   showSubmissionDialog.value = false
   pendingSubmissionType.value = type
 
-  // 設定確認對話框內容
-  const config = submissionTypeConfig[type]
-  if (config) {
-    confirmConfig.value = { ...config }
-    showConfirmDialog.value = true
+  // 活動申請需要先選擇選項
+  if (type === 'activity') {
+    showActivityOptionsDialog.value = true
+  } else {
+    // 其他類型直接顯示確認對話框
+    const config = submissionTypeConfig[type]
+    if (config) {
+      confirmConfig.value = { ...config }
+      showConfirmDialog.value = true
+    }
   }
+}
+
+// 處理活動選項確認
+const handleActivityOptionsConfirm = (options) => {
+  pendingActivityOptions.value = options
+
+  // 設定確認對話框內容（包含選項資訊）
+  const activityTypeLabel = options.activityType === 'internal' ? '校內' : '校外'
+  let optionsText = `活動類型：${activityTypeLabel}`
+
+  if (options.activityType === 'external') {
+    optionsText += `\n住宿：${options.hasAccommodation ? '是' : '否'}`
+    optionsText += `\n遊覽車：${options.hasBus ? '是' : '否'}`
+  } else if (options.requiresProposal) {
+    optionsText += `\n需繳交企劃書`
+  }
+
+  optionsText += `\n\n需繳交文件：${options.requiredDocuments.join(', ')}`
+
+  confirmConfig.value = {
+    title: '確認新增活動申請',
+    message: optionsText,
+    icon: 'event',
+    iconColor: 'primary',
+  }
+
+  showConfirmDialog.value = true
+}
+
+// 處理活動選項取消
+const handleActivityOptionsCancel = () => {
+  pendingSubmissionType.value = null
+  pendingActivityOptions.value = null
 }
 
 // 確認新增提交案
@@ -294,8 +342,23 @@ const handleConfirmSubmission = async () => {
   }
 
   try {
+    // 準備活動資料
+    let activityData = { ...config.activityData }
+
+    // 如果是活動申請，加入選項資料
+    if (type === 'activity' && pendingActivityOptions.value) {
+      activityData = {
+        ...activityData,
+        activityType: pendingActivityOptions.value.activityType,
+        hasAccommodation: pendingActivityOptions.value.hasAccommodation || false,
+        hasBus: pendingActivityOptions.value.hasBus || false,
+        requiresProposal: pendingActivityOptions.value.requiresProposal || false,
+        requiredDocuments: pendingActivityOptions.value.requiredDocuments || [],
+      }
+    }
+
     // 建立活動卡片
-    await createActivity(config.activityData)
+    await createActivity(activityData)
 
     // 顯示成功訊息
     $q.notify({
@@ -329,6 +392,7 @@ const handleConfirmSubmission = async () => {
 // 取消新增提交案
 const handleCancelSubmission = () => {
   pendingSubmissionType.value = null
+  pendingActivityOptions.value = null
 }
 
 function goTo(path) {

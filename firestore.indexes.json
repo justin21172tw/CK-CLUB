@@ -1,7 +1,7 @@
 {
   "indexes": [
     {
-      "collectionGroup": "submissions",
+      "collectionGroup": "activities",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -15,7 +15,25 @@
       ]
     },
     {
-      "collectionGroup": "submissions",
+      "collectionGroup": "activities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "submittedBy",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "activities",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -33,22 +51,12 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "userId",
+          "fieldPath": "currentReviewer",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "announcements",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "priority",
-          "order": "DESCENDING"
+          "fieldPath": "status",
+          "order": "ASCENDING"
         },
         {
           "fieldPath": "createdAt",
