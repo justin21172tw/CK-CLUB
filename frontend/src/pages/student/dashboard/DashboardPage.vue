@@ -213,10 +213,21 @@ import ActivityOptionsDialog from 'src/components/ActivityOptionsDialog.vue'
 const router = useRouter()
 const $q = useQuasar()
 const { currentUser } = useAuth()
-const { stats, recentActivities, loading, setupDashboard, refreshStats, createActivity, cleanup } =
-  useDashboard()
+const {
+  stats,
+  recentActivities,
+  loadingStats,
+  loadingActivities,
+  initializeDashboard,
+  subscribeToStats,
+  subscribeToActivities,
+  refreshDashboard,
+  createActivity,
+  unsubscribe
+} = useDashboard()
 
 const userName = computed(() => currentUser.value?.displayName || '學生')
+const loading = computed(() => loadingStats.value || loadingActivities.value)
 
 // 控制懸浮視窗顯示
 const showSubmissionDialog = ref(false)
@@ -244,6 +255,7 @@ const submissionTypeConfig = {
     iconColor: 'primary',
     activityData: {
       title: '活動申請（草稿）',
+      type: 'activity',
       icon: 'event',
       color: 'primary',
       link: '/application',
@@ -257,6 +269,7 @@ const submissionTypeConfig = {
     iconColor: 'positive',
     activityData: {
       title: '教師資料提交（草稿）',
+      type: 'teacher',
       icon: 'school',
       color: 'positive',
       link: '/upload',
@@ -267,17 +280,19 @@ const submissionTypeConfig = {
 
 // Initialize dashboard on mount
 onMounted(async () => {
-  await setupDashboard()
+  await initializeDashboard()
+  subscribeToStats()
+  subscribeToActivities()
 })
 
 // Cleanup on unmount
 onUnmounted(() => {
-  cleanup()
+  unsubscribe()
 })
 
 // Refresh stats when navigating back to dashboard
 const handleRefresh = async () => {
-  await refreshStats()
+  await refreshDashboard()
 }
 
 // 處理提交類型點擊
@@ -342,14 +357,32 @@ const handleConfirmSubmission = async () => {
   }
 
   try {
-    // 準備活動資料
-    let activityData = { ...config.activityData }
+    console.log('[DashboardPage] Starting activity creation...')
+    console.log('[DashboardPage] Type:', type)
+    console.log('[DashboardPage] Pending options:', pendingActivityOptions.value)
 
-    // 如果是活動申請，加入選項資料
+    // 準備活動資料
+    let activityData = {
+      title: config.activityData.title || '未命名活動',
+      description: config.activityData.description || '',
+      type: config.activityData.type,
+    }
+
+    // 如果是活動申請，加入完整選項資料到 options 欄位
     if (type === 'activity' && pendingActivityOptions.value) {
-      activityData = {
-        ...activityData,
+      activityData.title = pendingActivityOptions.value.activityName || activityData.title
+      activityData.description = pendingActivityOptions.value.activityDescription || ''
+      activityData.options = {
+        activityName: pendingActivityOptions.value.activityName,
+        activityDescription: pendingActivityOptions.value.activityDescription,
+        startDate: pendingActivityOptions.value.startDate,
+        startTime: pendingActivityOptions.value.startTime,
+        endDate: pendingActivityOptions.value.endDate,
+        endTime: pendingActivityOptions.value.endTime,
+        reportDeadline: pendingActivityOptions.value.reportDeadline,
         activityType: pendingActivityOptions.value.activityType,
+        hasExternalStudents: pendingActivityOptions.value.hasExternalStudents,
+        externalSchoolName: pendingActivityOptions.value.externalSchoolName,
         hasAccommodation: pendingActivityOptions.value.hasAccommodation || false,
         hasBus: pendingActivityOptions.value.hasBus || false,
         requiresProposal: pendingActivityOptions.value.requiresProposal || false,
@@ -357,32 +390,56 @@ const handleConfirmSubmission = async () => {
       }
     }
 
-    // 建立活動卡片
-    await createActivity(activityData)
+    console.log('[DashboardPage] Final activity data:', activityData)
 
-    // 顯示成功訊息
-    $q.notify({
-      type: 'positive',
-      message: '提交案已建立',
-      caption: '您可以在儀表板上查看',
-      position: 'top',
-      timeout: 2000,
+    // 顯示載入提示
+    const dismissLoading = $q.notify({
+      type: 'ongoing',
+      message: '正在建立活動...',
+      timeout: 0,
+      spinner: true,
     })
 
-    // 導向對應頁面
-    if (type === 'activity') {
-      router.push('/application')
-    } else if (type === 'teacher') {
-      window.open('#/upload', '_blank')
+    try {
+      // 建立活動卡片
+      const result = await createActivity(activityData)
+      console.log('[DashboardPage] Activity created successfully:', result)
+
+      // 關閉載入提示
+      dismissLoading()
+
+      // 顯示成功訊息
+      $q.notify({
+        type: 'positive',
+        message: '活動案已建立',
+        caption: '您可以在儀表板上查看狀態',
+        position: 'top',
+        timeout: 2000,
+      })
+
+      // 導向對應頁面
+      if (type === 'teacher') {
+        window.open('#/upload', '_blank')
+      }
+    } catch (innerError) {
+      // 關閉載入提示
+      dismissLoading()
+      throw innerError
     }
   } catch (error) {
-    console.error('Failed to create activity:', error)
+    console.error('[DashboardPage] Failed to create activity:', error)
+    console.error('[DashboardPage] Error details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    })
     $q.notify({
       type: 'negative',
       message: '建立失敗',
       caption: error.message || '請稍後再試',
       position: 'top',
-      timeout: 3000,
+      timeout: 5000,
     })
   } finally {
     pendingSubmissionType.value = null
