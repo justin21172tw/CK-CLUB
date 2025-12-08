@@ -109,6 +109,60 @@ export function useDashboard() {
     await fetchRecentActivities()
   }
 
+  const createActivity = async (activityData) => {
+    console.log('[useDashboard] createActivity called with:', activityData)
+
+    if (!currentUser.value) {
+      console.error('[useDashboard] User not logged in')
+      throw new Error('User not logged in')
+    }
+
+    console.log('[useDashboard] Current user:', currentUser.value.id)
+    console.log('[useDashboard] Supabase client:', supabase)
+
+    const insertData = {
+      user_id: currentUser.value.id,
+      ...activityData,
+      status: 'pending',
+      // created_at 和 updated_at 由資料庫自動產生，不需手動設定
+    }
+
+    console.log('[useDashboard] Inserting data:', JSON.stringify(insertData, null, 2))
+    console.log('[useDashboard] About to call supabase.from("activities").insert()...')
+
+    try {
+      const { data, error: createError } = await supabase
+        .from('activities')
+        .insert([insertData])
+        .select()
+        .single()
+
+      console.log('[useDashboard] Supabase response received')
+      console.log('[useDashboard] Data:', data)
+      console.log('[useDashboard] Error:', createError)
+
+      if (createError) {
+        console.error('[useDashboard] Insert error:', createError)
+        throw createError
+      }
+
+      console.log('[useDashboard] Insert successful:', data)
+
+      // Refresh activities list
+      console.log('[useDashboard] Refreshing activities list...')
+      await fetchRecentActivities()
+      console.log('[useDashboard] Activities list refreshed')
+
+      return data
+    } catch (err) {
+      console.error('[useDashboard] Unexpected error in createActivity:', err)
+      console.error('[useDashboard] Error type:', err.constructor.name)
+      console.error('[useDashboard] Error message:', err.message)
+      console.error('[useDashboard] Error stack:', err.stack)
+      throw err
+    }
+  }
+
   const unsubscribe = () => {
     if (statsSubscription) {
       supabase.removeChannel(statsSubscription)
@@ -130,6 +184,7 @@ export function useDashboard() {
     subscribeToStats,
     subscribeToActivities,
     refreshDashboard,
+    createActivity,
     unsubscribe
   }
 }
