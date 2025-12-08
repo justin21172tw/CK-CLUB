@@ -1,45 +1,23 @@
 {
-  "name": "quasar-project",
-  "version": "0.0.1",
-  "description": "A Quasar Project",
-  "productName": "Quasar App",
-  "author": "ChrisSun0731 <chris20090731@gmail.com>",
-  "type": "module",
+  "name": "ck-club-root",
+  "version": "1.0.0",
   "private": true,
+  "description": "CK Club - Quasar + Vercel + Supabase",
   "scripts": {
-    "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
-    "format": "prettier --write \"**/*.{js,vue,scss,html,md,json}\" --ignore-path .gitignore",
-    "test": "echo \"No test specified\" && exit 0",
-    "dev": "quasar dev",
-    "build": "quasar build",
-    "postinstall": "quasar prepare"
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "install:frontend": "cd frontend && npm install",
+    "install:api": "npm install @supabase/supabase-js",
+    "vercel:dev": "vercel dev",
+    "vercel:deploy": "vercel --prod"
   },
   "dependencies": {
-    "@quasar/extras": "^1.16.4",
-    "axios": "^1.12.2",
-    "firebase": "^11.9.1",
-    "quasar": "^2.16.0",
-    "typescript": "^5.8.3",
-    "vue": "^3.4.18",
-    "vue-gtag": "^3.5.1",
-    "vue-router": "^4.0.0",
-    "vuefire": "^3.2.1"
+    "@supabase/supabase-js": "^2.86.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.14.0",
-    "@quasar/app-vite": "^2.1.0",
-    "@vue/eslint-config-prettier": "^10.1.0",
-    "autoprefixer": "^10.4.2",
-    "eslint": "^9.14.0",
-    "eslint-plugin-vue": "^9.30.0",
-    "globals": "^15.12.0",
-    "postcss": "^8.4.14",
-    "prettier": "^3.3.3",
-    "vite-plugin-checker": "^0.9.0"
+    "vercel": "^33.0.0"
   },
   "engines": {
-    "node": "^28 || ^26 || ^24 || ^22 || ^20 || ^18",
-    "npm": ">= 6.13.4",
-    "yarn": ">= 1.21.1"
+    "node": ">=18.0.0"
   }
 }
