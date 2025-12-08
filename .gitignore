@@ -7,6 +7,9 @@ node_modules/
 .env.local
 .env.*.local
 
+# SQL 腳本（含敏感資料庫操作）
+sql/
+
 # Vercel
 .vercel
 
@@ -48,6 +51,8 @@ dist
 # 開發文件
 docs-dev/
 docs/
+
+googlefrom_pdf/
 
 # google cloud OAuth client secret
 client_secret_*.json
