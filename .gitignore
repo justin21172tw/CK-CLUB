@@ -1,0 +1,53 @@
+# 依賴
+node_modules/
+.pnpm-store/
+
+# 環境變數
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel
+
+# 日誌
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 編輯器
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Quasar
+.quasar
+dist
+/dist
+
+# 測試
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# 臨時文件
+*.tmp
+*.temp
+.cache
+
+# 開發文件
+docs-dev/
+docs/
+
+# google cloud OAuth client secret
+client_secret_*.json

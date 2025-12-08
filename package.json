@@ -1,0 +1,23 @@
+{
+  "name": "ck-club-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CK Club - Quasar + Vercel + Supabase",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "install:frontend": "cd frontend && npm install",
+    "install:api": "npm install @supabase/supabase-js",
+    "vercel:dev": "vercel dev",
+    "vercel:deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.86.0"
+  },
+  "devDependencies": {
+    "vercel": "^33.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
