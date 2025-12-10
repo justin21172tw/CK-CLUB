@@ -115,15 +115,17 @@
               :key="activity.id"
               class="col-12 col-sm-6 col-md-4"
             >
-              <div class="glass-card activity-card cursor-pointer" @click="goTo(activity.link)">
+              <div class="glass-card activity-card cursor-pointer" @click="goToActivity(activity)">
                 <div class="card-content text-center">
                   <div class="icon-wrapper">
-                    <q-icon :name="activity.icon" :color="activity.color" size="42px" />
+                    <q-icon name="event" color="primary" size="42px" />
                   </div>
                   <div class="text-subtitle1 text-weight-medium text-white q-mt-sm">
                     {{ activity.title }}
                   </div>
-                  <div class="text-caption text-white-7 q-mt-xs">{{ activity.date }}</div>
+                  <div class="text-caption text-white-7 q-mt-xs">
+                    {{ activity.status === 'pending' ? '待審核' : activity.status === 'approved' ? '已通過' : '草稿' }}
+                  </div>
                 </div>
                 <div class="card-footer">
                   <q-icon name="arrow_forward" color="white" size="18px" />
@@ -452,8 +454,12 @@ const handleCancelSubmission = () => {
   pendingActivityOptions.value = null
 }
 
-function goTo(path) {
-  router.push(path)
+function goToActivity(activity) {
+  // 導向到 application 頁面，可以傳遞活動 ID
+  router.push({
+    path: '/application',
+    query: { id: activity.id }
+  })
 }
 </script>
 
