@@ -11,7 +11,7 @@ const routes = [
       { path: 'announcement', component: () => import('pages/student/announcement/AnnouncementPage.vue') },
       { path: 'notice', component: () => import('pages/student/notice/NoticePage.vue') },
 
-      { path: 'admin', component: () => import('pages/admin/AdminPage.vue') },
+      // { path: 'admin', component: () => import('pages/admin/AdminPage.vue') },
     ],
   },
 

@@ -4,7 +4,7 @@
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">
           <q-icon name="settings" class="q-mr-sm" />
-          活動申請選項
+          活動登錄選項
         </div>
         <q-space />
         <q-btn
@@ -24,7 +24,8 @@
 
       <q-card-section class="q-pt-none" style="max-height: 70vh; overflow-y: auto">
         <div class="text-body2 text-grey-7 q-mb-md">
-          請根據您的活動性質選擇以下選項，系統將自動計算需要繳交的文件。
+          請根據您的活動性質選擇以下選項，系統將自動計算需要繳交的文件。<br />
+          <strong>登錄後所有資料將無法修改</strong>，請仔細確認。
         </div>
 
         <!-- 活動名稱 -->
@@ -37,6 +38,7 @@
             v-model="options.activityName"
             outlined
             dense
+            :readonly="readonly"
             label="主辦社團 + 活動名稱"
             placeholder="例：測資 Python 程式設計工作坊"
             :rules="[(val) => (val && val.length > 0) || '請填寫活動名稱']"
@@ -54,6 +56,7 @@
             outlined
             type="textarea"
             rows="3"
+            :readonly="readonly"
             label="簡述活動內容、目的、預期成果等"
             placeholder="例：本次工作坊將介紹 Python 基礎語法，並透過實作練習讓同學熟悉程式設計..."
             counter
@@ -75,6 +78,7 @@
                 v-model="options.startDate"
                 outlined
                 dense
+                :readonly="readonly"
                 label="開始日期"
                 type="date"
                 :rules="[(val) => (val && val.length > 0) || '請選擇開始日期']"
@@ -85,6 +89,7 @@
                 v-model="options.startTime"
                 outlined
                 dense
+                :readonly="readonly"
                 label="開始時間"
                 type="time"
                 :rules="[(val) => (val && val.length > 0) || '請選擇開始時間']"
@@ -105,6 +110,7 @@
                 v-model="options.endDate"
                 outlined
                 dense
+                :readonly="readonly"
                 label="結束日期"
                 type="date"
                 :rules="[
@@ -118,6 +124,7 @@
                 v-model="options.endTime"
                 outlined
                 dense
+                :readonly="readonly"
                 label="結束時間"
                 type="time"
                 :rules="[(val) => (val && val.length > 0) || '請選擇結束時間']"
@@ -138,6 +145,7 @@
             v-model="options.reportDeadline"
             outlined
             dense
+            :readonly="readonly"
             label="成果報告書繳交日期"
             type="date"
             :rules="[
@@ -158,6 +166,7 @@
           <q-option-group
             v-model="options.hasExternalStudents"
             :options="externalStudentsOptions"
+            :disable="readonly"
             color="primary"
             inline
           />
@@ -166,6 +175,7 @@
             v-model="options.externalSchoolName"
             outlined
             dense
+            :readonly="readonly"
             label="請填寫外校校名"
             class="q-mt-sm"
             :rules="[(val) => (val && val.length > 0) || '請填寫外校校名']"
@@ -183,6 +193,7 @@
           <q-option-group
             v-model="options.activityType"
             :options="activityTypeOptions"
+            :disable="readonly"
             color="primary"
             inline
           />
@@ -200,11 +211,12 @@
           <q-checkbox
             v-model="options.hasAccommodation"
             label="有住宿"
+            :disable="readonly"
             color="primary"
             class="q-mb-sm"
           />
 
-          <q-checkbox v-model="options.hasBus" label="有遊覽車" color="primary" />
+          <q-checkbox v-model="options.hasBus" label="有遊覽車" :disable="readonly" color="primary" />
         </div>
 
         <!-- 校內活動選項 -->
@@ -217,6 +229,7 @@
           <q-checkbox
             v-model="options.requiresProposal"
             label="需要繳交企劃書（大型活動）"
+            :disable="readonly"
             color="primary"
           >
             <q-tooltip
@@ -249,8 +262,15 @@
       </q-card-section>
 
       <q-card-actions align="right">
-        <q-btn flat label="取消" color="grey" @click="handleCancel" />
-        <q-btn unelevated label="確認" color="primary" icon="check" @click="handleConfirm" />
+        <q-btn flat :label="readonly ? '關閉' : '取消'" color="grey" @click="handleCancel" />
+        <q-btn
+          v-if="!readonly"
+          unelevated
+          label="確認登錄"
+          color="primary"
+          icon="how_to_reg"
+          @click="handleConfirm"
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -261,6 +281,14 @@ import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   modelValue: Boolean,
+  readonly: {
+    type: Boolean,
+    default: false,
+  },
+  initialOptions: {
+    type: Object,
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
@@ -269,7 +297,12 @@ const isDev = import.meta.env.DEV
 
 const show = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val),
+  set: (val) => {
+    if (!val && !props.readonly) {
+      resetOptions()
+    }
+    emit('update:modelValue', val)
+  },
 })
 
 // 選項資料
@@ -367,6 +400,16 @@ watch(
   },
 )
 
+// 當對話框打開且有初始選項時，載入它們
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue && props.initialOptions) {
+      options.value = { ...props.initialOptions }
+    }
+  },
+)
+
 const handleConfirm = () => {
   console.log('[ActivityOptionsDialog] handleConfirm called')
   console.log('[ActivityOptionsDialog] Current options:', options.value)
@@ -422,7 +465,9 @@ const handleConfirm = () => {
 const handleCancel = () => {
   emit('cancel')
   show.value = false
-  resetOptions()
+  if (!props.readonly) {
+    resetOptions()
+  }
 }
 
 const resetOptions = () => {

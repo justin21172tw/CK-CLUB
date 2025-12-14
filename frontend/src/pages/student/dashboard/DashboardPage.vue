@@ -124,7 +124,7 @@
                     {{ activity.title }}
                   </div>
                   <div class="text-caption text-white-7 q-mt-xs">
-                    {{ activity.status === 'pending' ? '待審核' : activity.status === 'approved' ? '已通過' : '草稿' }}
+                    {{ activity.status === 'registered' ? '待簽核' : activity.status === 'approved' ? '初審通過' : activity.status === 'rejected' ? '已駁回' : '未知狀態' }}
                   </div>
                 </div>
                 <div class="card-footer">
@@ -194,7 +194,7 @@
       :message="confirmConfig.message"
       :icon="confirmConfig.icon"
       :icon-color="confirmConfig.iconColor"
-      confirm-text="確認新增"
+      confirm-text="確認登錄"
       cancel-text="取消"
       @confirm="handleConfirmSubmission"
       @cancel="handleCancelSubmission"
@@ -251,17 +251,17 @@ const confirmConfig = ref({
 // 提交類型配置
 const submissionTypeConfig = {
   activity: {
-    title: '確認新增活動申請',
-    message: '您即將建立新的活動申請案。確定要繼續嗎？',
-    icon: 'event',
+    title: '確認登錄活動',
+    message: '您即將登錄此活動，登錄後所有資料將無法修改。確定要繼續嗎？',
+    icon: 'how_to_reg',
     iconColor: 'primary',
     activityData: {
-      title: '活動申請（草稿）',
+      title: '活動登錄（未命名）',
       type: 'activity',
       icon: 'event',
       color: 'primary',
       link: '/application',
-      status: 'draft',
+      status: 'registered',
     },
   },
   teacher: {
@@ -270,12 +270,12 @@ const submissionTypeConfig = {
     icon: 'school',
     iconColor: 'positive',
     activityData: {
-      title: '教師資料提交（草稿）',
+      title: '教師資料提交（未命名）',
       type: 'teacher',
       icon: 'school',
       color: 'positive',
       link: '/upload',
-      status: 'draft',
+      status: 'registered',
     },
   },
 }
@@ -330,13 +330,14 @@ const handleActivityOptionsConfirm = (options) => {
     optionsText += `\n需繳交企劃書`
   }
 
-  optionsText += `\n\n需繳交文件：${options.requiredDocuments.join(', ')}`
+  optionsText += `\n\n需繳交文件：${options.requiredDocuments.join(', ')}\n\n`
+  optionsText += `\n\n⚠️ 登錄後所有資料將無法修改，請仔細確認。`
 
   confirmConfig.value = {
-    title: '確認新增活動申請',
+    title: '確認登錄活動',
     message: optionsText,
-    icon: 'event',
-    iconColor: 'primary',
+    icon: 'how_to_reg',
+    iconColor: 'warning',
   }
 
   showConfirmDialog.value = true
