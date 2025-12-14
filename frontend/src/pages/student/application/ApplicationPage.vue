@@ -1,5 +1,9 @@
 <template>
   <q-page class="application-page q-pa-md">
+    <q-inner-loading :showing="loading">
+      <q-spinner-gears size="50px" color="primary" />
+    </q-inner-loading>
+
     <div class="page-header q-mb-lg">
       <div class="text-h4 text-weight-bold">活動申請</div>
       <div class="text-body2 text-grey-7 q-mt-sm">請填寫完整的活動資訊並上傳所需文件</div>
@@ -13,45 +17,27 @@
         </div>
 
         <q-form @submit="handleSubmit" class="q-gutter-md">
-          <q-input
-            v-model="form.title"
-            label="活動名稱 *"
-            outlined
-            :rules="[(val) => (val && val.length > 0) || '請輸入活動名稱']"
-          />
-
-          <q-input
-            v-model="form.description"
-            label="活動說明"
-            type="textarea"
-            outlined
-            rows="4"
-            hint="簡述活動內容、目的等"
-          />
-
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-md-6">
-              <q-input
-                v-model="form.startDate"
-                label="開始日期 *"
-                type="date"
-                outlined
-                :rules="[(val) => !!val || '請選擇開始日期']"
+          <div class="info-summary q-pa-md bg-blue-1 rounded-borders">
+            <div class="row items-center q-gutter-md">
+              <q-btn
+                unelevated
+                color="primary"
+                :label="isReadonly ? '查看活動基本資訊' : '設定活動基本資訊'"
+                icon="info"
+                @click="showOptionsDialog = true"
               />
-            </div>
-            <div class="col-12 col-md-6">
-              <q-input
-                v-model="form.endDate"
-                label="結束日期 *"
-                type="date"
-                outlined
-                :rules="[(val) => !!val || '請選擇結束日期']"
-              />
+              <div v-if="form.title" class="col">
+                <div class="text-body2">
+                  <strong>活動名稱：</strong>
+                  {{ form.title }}
+                </div>
+                <div v-if="form.description" class="text-body2 q-mt-xs text-grey-7">
+                  {{ form.description }}
+                </div>
+              </div>
+              <div v-else class="col text-grey-7">請點擊按鈕設定活動基本資訊</div>
             </div>
           </div>
-
-          <q-input v-model="form.location" label="活動地點 *" outlined :rules="[(val) => !!val || '請輸入活動地點']" />
-
           <q-separator class="q-my-lg" />
 
           <div class="text-h6 q-mb-md">
@@ -64,7 +50,7 @@
               <q-btn
                 unelevated
                 color="primary"
-                label="設定活動選項"
+                :label="isReadonly ? '查看活動選項' : '設定活動選項'"
                 icon="tune"
                 @click="showOptionsDialog = true"
               />
@@ -73,29 +59,7 @@
                   <strong>活動類型：</strong>
                   {{ activityOptions.activityType === 'internal' ? '校內活動' : '校外活動' }}
                 </div>
-                <div v-if="activityOptions.activityType === 'external'" class="text-body2 q-mt-xs">
-                  <q-chip
-                    v-if="activityOptions.hasAccommodation"
-                    dense
-                    color="orange"
-                    text-color="white"
-                    icon="hotel"
-                  >
-                    需要住宿
-                  </q-chip>
-                  <q-chip v-if="activityOptions.hasBus" dense color="blue" text-color="white" icon="directions_bus">
-                    需要租車
-                  </q-chip>
-                </div>
-                <div v-if="activityOptions.requiresProposal" class="text-body2 q-mt-xs">
-                  <q-chip dense color="purple" text-color="white" icon="description"> 需繳交企劃書 </q-chip>
-                </div>
-                <div class="text-body2 q-mt-sm">
-                  <strong>需繳交文件：</strong>
-                  {{ activityOptions.requiredDocuments.join('、') }}
-                </div>
               </div>
-              <div v-else class="col text-grey-7">請點擊按鈕設定活動選項</div>
             </div>
           </div>
 
@@ -103,30 +67,18 @@
 
           <div class="row q-col-gutter-md justify-end">
             <div class="col-12 col-sm-auto">
-              <q-btn unelevated label="取消" color="grey-7" to="/dashboard" class="full-width" />
+              <q-btn unelevated label="返回" color="grey-7" to="/dashboard" class="full-width" />
             </div>
-            <div class="col-12 col-sm-auto">
+            <div v-if="!isReadonly" class="col-12 col-sm-auto">
               <q-btn
                 unelevated
                 type="submit"
-                label="儲存草稿"
-                color="orange"
-                :loading="saving"
-                :disable="!isFormValid"
-                class="full-width"
-                @click="isDraft = true"
-              />
-            </div>
-            <div class="col-12 col-sm-auto">
-              <q-btn
-                unelevated
-                type="submit"
-                label="提交申請"
+                label="登錄活動"
                 color="primary"
+                icon="how_to_reg"
                 :loading="saving"
                 :disable="!isFormValid || !activityOptions"
                 class="full-width"
-                @click="isDraft = false"
               />
             </div>
           </div>
@@ -134,8 +86,18 @@
       </q-card-section>
     </q-card>
 
+    <activity-info-dialog
+      v-model="showInfoDialog"
+      :readonly="isReadonly"
+      :initial-data="form"
+      @confirm="handleInfoConfirm"
+      @cancel="handleInfoCancel"
+    />
+
     <activity-options-dialog
       v-model="showOptionsDialog"
+      :readonly="isReadonly"
+      :initial-options="activityOptions"
       @confirm="handleOptionsConfirm"
       @cancel="handleOptionsCancel"
     />
@@ -143,39 +105,100 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'boot/supabase'
 import { useAuth } from 'src/composables/useAuth'
+import ActivityInfoDialog from 'src/components/ActivityInfoDialog.vue'
 import ActivityOptionsDialog from 'src/components/ActivityOptionsDialog.vue'
 
 const router = useRouter()
+const route = useRoute()
 const $q = useQuasar()
 const { currentUser } = useAuth()
 
+const showInfoDialog = ref(false)
 const showOptionsDialog = ref(false)
 const saving = ref(false)
-const isDraft = ref(false)
+const activityId = ref(null)
+const loading = ref(false)
+const activityStatus = ref(null)
 
 const form = ref({
   title: '',
   description: '',
-  startDate: '',
-  endDate: '',
-  location: '',
 })
 
 const activityOptions = ref(null)
 
-const isFormValid = computed(() => {
-  return (
-    form.value.title &&
-    form.value.startDate &&
-    form.value.endDate &&
-    form.value.location
-  )
+// 判斷是否為唯讀模式（已登錄後就不可修改）
+const isReadonly = computed(() => {
+  return activityStatus.value === 'registered' ||
+         activityStatus.value === 'approved' ||
+         activityStatus.value === 'rejected'
 })
+
+const isFormValid = computed(() => {
+  return form.value.title && activityOptions.value !== null
+})
+
+// Load activity data if ID is provided in route
+onMounted(async () => {
+  const id = route.query.id
+  if (id) {
+    activityId.value = id
+    await loadActivity(id)
+  }
+})
+
+async function loadActivity(id) {
+  try {
+    loading.value = true
+    const { data, error } = await supabase
+      .from('activities')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) throw error
+
+    if (data) {
+      form.value.title = data.title || ''
+      form.value.description = data.description || ''
+      activityStatus.value = data.status || 'draft'
+
+      // Load options from JSONB field if exists
+      if (data.options) {
+        activityOptions.value = data.options
+      }
+    }
+  } catch (error) {
+    console.error('Load activity error:', error)
+    $q.notify({
+      type: 'negative',
+      message: '載入活動資料失敗',
+      caption: error.message,
+      position: 'top',
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleInfoConfirm(data) {
+  form.value = { ...data }
+  showInfoDialog.value = false
+  $q.notify({
+    type: 'positive',
+    message: '活動基本資訊已設定',
+    position: 'top',
+  })
+}
+
+function handleInfoCancel() {
+  showInfoDialog.value = false
+}
 
 function handleOptionsConfirm(options) {
   activityOptions.value = options
@@ -201,7 +224,16 @@ async function handleSubmit() {
     return
   }
 
-  if (!activityOptions.value && !isDraft.value) {
+  if (isReadonly.value) {
+    $q.notify({
+      type: 'warning',
+      message: '活動已登錄，無法修改',
+      position: 'top',
+    })
+    return
+  }
+
+  if (!activityOptions.value) {
     $q.notify({
       type: 'warning',
       message: '請先設定活動選項',
@@ -214,32 +246,51 @@ async function handleSubmit() {
     saving.value = true
 
     const activityData = {
-      user_id: currentUser.value.id,
       title: form.value.title,
       description: form.value.description,
-      start_date: form.value.startDate,
-      end_date: form.value.endDate,
-      location: form.value.location,
-      status: isDraft.value ? 'draft' : 'pending',
-      activity_type: activityOptions.value?.activityType || 'internal',
-      has_accommodation: activityOptions.value?.hasAccommodation || false,
-      has_bus: activityOptions.value?.hasBus || false,
-      requires_proposal: activityOptions.value?.requiresProposal || false,
-      required_documents: activityOptions.value?.requiredDocuments || [],
+      type: 'activity',
+      status: 'registered',
+      options: activityOptions.value || {},
     }
 
-    const { error } = await supabase.from('activities').insert(activityData).select().single()
+    // Update existing activity or create new one
+    if (activityId.value) {
+      // Update existing activity
+      const { error } = await supabase
+        .from('activities')
+        .update(activityData)
+        .eq('id', activityId.value)
+        .select()
+        .single()
 
-    if (error) throw error
+      if (error) throw error
 
-    $q.notify({
-      type: 'positive',
-      message: isDraft.value ? '草稿已儲存' : '申請已提交',
-      caption: isDraft.value ? '您可以稍後繼續編輯' : '請等待審核',
-      position: 'top',
-    })
+      $q.notify({
+        type: 'positive',
+        message: '活動已更新',
+        caption: '等待社活組初審',
+        position: 'top',
+      })
+    } else {
+      // Create new activity
+      activityData.user_id = currentUser.value.id
 
-    if (!isDraft.value) {
+      const { error } = await supabase
+        .from('activities')
+        .insert(activityData)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      $q.notify({
+        type: 'positive',
+        message: '活動已成功登錄',
+        caption: '請等待社活組初審，通過後即可上傳文件',
+        position: 'top',
+      })
+
+      // Update pending count in dashboard
       await supabase.from('dashboards').update({
         stats: supabase.raw('jsonb_set(stats, \'{pending}\', (COALESCE((stats->>\'pending\')::int, 0) + 1)::text::jsonb)')
       }).eq('user_id', currentUser.value.id)
@@ -250,7 +301,7 @@ async function handleSubmit() {
     console.error('Submit error:', error)
     $q.notify({
       type: 'negative',
-      message: '提交失敗',
+      message: '登錄失敗',
       caption: error.message || '請稍後再試',
       position: 'top',
     })
@@ -272,6 +323,10 @@ async function handleSubmit() {
 
 .page-header {
   padding: 0 8px;
+}
+
+.info-summary {
+  border: 1px solid #e3f2fd;
 }
 
 .options-summary {

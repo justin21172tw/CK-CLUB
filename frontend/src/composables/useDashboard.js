@@ -123,7 +123,7 @@ export function useDashboard() {
     const insertData = {
       user_id: currentUser.value.id,
       ...activityData,
-      status: 'pending',
+      status: 'registered',
       // created_at 和 updated_at 由資料庫自動產生，不需手動設定
     }
 
