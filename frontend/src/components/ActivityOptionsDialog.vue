@@ -278,6 +278,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { DOCUMENT_DEFINITIONS } from 'src/config/constants'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -334,43 +335,31 @@ const externalStudentsOptions = [
   { label: '無', value: 'no' },
 ]
 
-// 文件定義
-const documentDefinitions = {
-  A: { code: 'A', name: '活動登錄表單', optional: false },
-  B: { code: 'B', name: '校內場地申請表', optional: false },
-  C: { code: 'C', name: '校外活動申請表', optional: false },
-  D: { code: 'D', name: '企劃書', optional: false },
-  E: { code: 'E', name: '家長同意書', optional: false },
-  F: { code: 'F', name: '保險（保單/收據/名冊）', optional: false },
-  G: { code: 'G', name: '住宿合格證明', optional: false },
-  H: { code: 'H', name: '車輛契約書', optional: false },
-}
-
 // 計算需要的文件
 const requiredDocuments = computed(() => {
   const docs = []
 
   if (options.value.activityType === 'internal') {
     // 校內活動：A, B, (D)
-    docs.push(documentDefinitions.A)
-    docs.push(documentDefinitions.B)
+    docs.push(DOCUMENT_DEFINITIONS.A)
+    docs.push(DOCUMENT_DEFINITIONS.B )
     if (options.value.requiresProposal) {
-      docs.push(documentDefinitions.D)
+      docs.push(DOCUMENT_DEFINITIONS.D)
     }
   } else {
     // 校外活動：A, C, D, E, F 為基本
-    docs.push(documentDefinitions.A)
-    docs.push(documentDefinitions.C)
-    docs.push(documentDefinitions.D)
-    docs.push(documentDefinitions.E)
-    docs.push(documentDefinitions.F)
+    docs.push(DOCUMENT_DEFINITIONS.A)
+    docs.push(DOCUMENT_DEFINITIONS.C)
+    docs.push(DOCUMENT_DEFINITIONS.D)
+    docs.push(DOCUMENT_DEFINITIONS.E)
+    docs.push(DOCUMENT_DEFINITIONS.F)
 
     // 根據住宿和遊覽車加入 G, H
     if (options.value.hasAccommodation) {
-      docs.push(documentDefinitions.G)
+      docs.push(DOCUMENT_DEFINITIONS.G)
     }
     if (options.value.hasBus) {
-      docs.push(documentDefinitions.H)
+      docs.push(DOCUMENT_DEFINITIONS.H)
     }
   }
 

@@ -44,12 +44,31 @@ export function useDashboard() {
     }
   }
 
-  const subscribeToStats = () => {
+  const subscribeToStats = async () => {
     if (!currentUser.value) return
 
     loadingStats.value = true
     const userId = currentUser.value.id
 
+    // 先獲取初始數據
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('dashboards')
+        .select('stats')
+        .eq('user_id', userId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      stats.value = data?.stats || { pending: 0, approved: 0, unread: 0 }
+    } catch (err) {
+      console.error('Error fetching stats:', err)
+      stats.value = { pending: 0, approved: 0, unread: 0 }
+    } finally {
+      loadingStats.value = false
+    }
+
+    // 然後訂閱實時更新
     statsSubscription = supabase
       .channel('dashboard_' + userId)
       .on('postgres_changes',
@@ -58,7 +77,6 @@ export function useDashboard() {
           if (payload.new) {
             stats.value = payload.new.stats || { pending: 0, approved: 0, unread: 0 }
           }
-          loadingStats.value = false
         }
       )
       .subscribe()

@@ -1,11 +1,8 @@
 <template>
   <q-page class="dashboard-page">
-    <!-- 背景漸層 -->
-    <div class="gradient-background"></div>
-
     <!-- Loading overlay -->
     <q-inner-loading :showing="loading">
-      <q-spinner-gears size="50px" color="white" />
+      <q-spinner-gears size="50px" color="primary" />
     </q-inner-loading>
 
     <div class="dashboard-content q-pa-md">
@@ -13,100 +10,109 @@
         <!-- 左側：統計資訊與快速操作 -->
         <div class="col-12 col-lg-3">
           <!-- Header -->
-          <div class="glass-card header-card q-mb-md">
-            <div class="text-h5 text-white text-weight-bold">學生儀表板</div>
-            <div class="text-subtitle2 text-white-8">歡迎回來，{{ userName }}</div>
-          </div>
+          <q-card class="header-card q-mb-md">
+            <q-card-section>
+              <div class="text-h5 text-primary text-weight-bold">學生儀表板</div>
+              <div class="text-subtitle2 text-grey-7">歡迎回來，{{ userName }}</div>
+            </q-card-section>
+          </q-card>
 
           <!-- Statistics -->
-          <div class="glass-card q-mb-md">
-            <div class="row items-center justify-between q-mb-md">
-              <div class="text-subtitle2 text-weight-bold text-white">統計資訊</div>
-              <q-btn flat dense round icon="refresh" size="sm" color="white" @click="handleRefresh">
-                <q-tooltip>重新整理</q-tooltip>
-              </q-btn>
-            </div>
-            <div class="q-gutter-sm">
-              <dashboard-stat-card
-                icon="pending"
-                label="待審核"
-                :value="stats.pending"
-                color="orange"
-              />
-              <dashboard-stat-card
-                icon="check_circle"
-                label="已通過"
-                :value="stats.approved"
-                color="green"
-              />
-              <dashboard-stat-card
-                icon="campaign"
-                label="未讀公告"
-                :value="stats.unread"
-                color="blue"
-              />
-            </div>
-          </div>
+          <q-card class="q-mb-md">
+            <q-card-section>
+              <div class="row items-center justify-between q-mb-md">
+                <div class="text-subtitle2 text-weight-bold">統計資訊</div>
+                <q-btn flat dense round icon="refresh" size="sm" color="primary" @click="handleRefresh">
+                  <q-tooltip>重新整理</q-tooltip>
+                </q-btn>
+              </div>
+              <div class="q-gutter-sm">
+                <dashboard-stat-card
+                  icon="pending"
+                  label="待審核"
+                  :value="stats.pending"
+                  color="orange"
+                />
+                <dashboard-stat-card
+                  icon="check_circle"
+                  label="已通過"
+                  :value="stats.approved"
+                  color="green"
+                />
+                <dashboard-stat-card
+                  icon="campaign"
+                  label="未讀公告"
+                  :value="stats.unread"
+                  color="blue"
+                />
+              </div>
+            </q-card-section>
+          </q-card>
 
           <!-- Quick Actions -->
-          <div class="glass-card">
-            <div class="text-subtitle2 text-weight-bold q-mb-md text-white">快速操作</div>
-            <div class="q-gutter-sm">
-              <q-btn
-                unelevated
-                class="action-btn"
-                icon="article"
-                label="活動申請"
-                to="/application"
-                no-caps
-                size="md"
-              />
-              <q-btn
-                unelevated
-                class="action-btn"
-                icon="campaign"
-                label="查看公告"
-                to="/announcement"
-                no-caps
-                size="md"
-              />
-              <q-btn
-                unelevated
-                class="action-btn"
-                icon="notifications"
-                label="我的通知"
-                to="/notice"
-                no-caps
-                size="md"
-              />
-            </div>
-          </div>
+          <q-card>
+            <q-card-section>
+              <div class="text-subtitle2 text-weight-bold q-mb-md">快速操作</div>
+              <div class="q-gutter-sm">
+                <q-btn
+                  unelevated
+                  class="action-btn"
+                  icon="article"
+                  label="活動申請"
+                  to="/application"
+                  color="primary"
+                  no-caps
+                  size="md"
+                />
+                <q-btn
+                  unelevated
+                  class="action-btn"
+                  icon="campaign"
+                  label="查看公告"
+                  to="/announcement"
+                  color="primary"
+                  no-caps
+                  size="md"
+                />
+                <q-btn
+                  unelevated
+                  class="action-btn"
+                  icon="notifications"
+                  label="我的通知"
+                  to="/notice"
+                  color="primary"
+                  no-caps
+                  size="md"
+                />
+              </div>
+            </q-card-section>
+          </q-card>
         </div>
 
         <!-- 右側：最近活動卡片網格 -->
         <div class="col-12 col-lg-9">
-          <div class="text-h6 q-mb-md text-white text-weight-bold">最近活動</div>
+          <div class="text-h6 q-mb-md text-weight-bold">最近活動</div>
 
           <!-- Activities grid -->
           <div class="row q-col-gutter-md">
             <!-- 新增提交案卡片 -->
             <div class="col-12 col-sm-6 col-md-4">
-              <div
-                class="glass-card create-card cursor-pointer"
+              <q-card
+                class="create-card cursor-pointer"
                 @click="showSubmissionDialog = true"
               >
-                <div class="card-content text-center">
+                <q-card-section class="card-content text-center">
                   <div class="icon-wrapper">
-                    <q-icon name="add_circle" color="white" size="42px" />
+                    <q-icon name="add_circle" color="primary" size="42px" />
                   </div>
-                  <div class="text-subtitle1 text-weight-bold text-white q-mt-sm">新增提交案</div>
-                  <div class="text-caption text-white-8 q-mt-xs">開始建立新的申請</div>
-                </div>
-                <div class="card-footer">
-                  <q-icon name="arrow_forward" color="white" size="18px" />
-                  <span class="text-white text-body2">立即申請</span>
-                </div>
-              </div>
+                  <div class="text-subtitle1 text-weight-bold q-mt-md">新增活動登錄案</div>
+                  <div class="text-caption text-grey-6">開始建立您的活動申請</div>
+                </q-card-section>
+                <q-separator />
+                <q-card-section class="card-footer">
+                  <q-icon name="arrow_forward" color="primary" size="20px" />
+                </q-card-section>
+              </q-card>
             </div>
 
             <!-- Existing activity cards -->
@@ -115,23 +121,27 @@
               :key="activity.id"
               class="col-12 col-sm-6 col-md-4"
             >
-              <div class="glass-card activity-card cursor-pointer" @click="goToActivity(activity)">
-                <div class="card-content text-center">
-                  <div class="icon-wrapper">
-                    <q-icon name="event" color="primary" size="42px" />
+              <q-card class="activity-card cursor-pointer" @click="goToActivity(activity)">
+                <q-card-section class="card-content">
+                  <div class="text-h6 text-weight-bold q-mb-sm">{{ activity.title }}</div>
+                  <div class="text-caption text-grey-6">{{ activity.description || '暫無描述' }}</div>
+                  <div class="q-mt-md">
+                    <q-chip
+                      :color="getStatusColor(activity.status)"
+                      text-color="white"
+                      dense
+                      size="sm"
+                    >
+                      {{ getStatusText(activity.status) }}
+                    </q-chip>
                   </div>
-                  <div class="text-subtitle1 text-weight-medium text-white q-mt-sm">
-                    {{ activity.title }}
-                  </div>
-                  <div class="text-caption text-white-7 q-mt-xs">
-                    {{ activity.status === 'registered' ? '待簽核' : activity.status === 'approved' ? '初審通過' : activity.status === 'rejected' ? '已駁回' : '未知狀態' }}
-                  </div>
-                </div>
-                <div class="card-footer">
-                  <q-icon name="arrow_forward" color="white" size="18px" />
-                  <span class="text-white text-body2">查看詳情</span>
-                </div>
-              </div>
+                </q-card-section>
+                <q-separator />
+                <q-card-section class="card-footer">
+                  <q-icon name="event" color="grey-6" size="16px" />
+                  <span class="text-caption text-grey-6">{{ formatDate(activity.created_at) }}</span>
+                </q-card-section>
+              </q-card>
             </div>
           </div>
         </div>
@@ -142,38 +152,42 @@
     <q-dialog v-model="showSubmissionDialog" class="submission-dialog">
       <q-card class="dialog-card">
         <q-card-section class="dialog-header">
-          <div class="text-h6 text-white text-weight-bold">選擇提交類型</div>
-          <q-btn flat round dense icon="close" color="white" v-close-popup />
+          <div class="text-h6 text-weight-bold">選擇登錄類型</div>
+          <q-btn flat round dense icon="close" v-close-popup />
         </q-card-section>
 
         <q-card-section class="dialog-content">
           <div class="row q-col-gutter-md">
             <!-- 活動申請選項 -->
             <div class="col-12 col-sm-6">
-              <div class="option-card" @click="handleSubmissionClick('activity')">
-                <div class="option-icon-wrapper">
-                  <q-icon name="event" color="white" size="48px" />
-                </div>
-                <div class="text-h6 text-white text-weight-bold q-mt-md">活動申請</div>
-                <div class="text-body2 text-white-8 q-mt-sm">申請社團活動、活動企劃等相關事項</div>
-                <div class="option-arrow">
-                  <q-icon name="arrow_forward" color="white" size="24px" />
-                </div>
-              </div>
+              <q-card class="option-card" @click="handleSubmissionClick('activity')">
+                <q-card-section class="text-center">
+                  <div class="option-icon-wrapper">
+                    <q-icon name="event" color="primary" size="48px" />
+                  </div>
+                  <div class="text-h6 text-weight-bold q-mt-md">活動登錄</div>
+                  <div class="text-body2 text-grey-6 q-mt-sm">登錄社團活動、活動企劃等相關事項</div>
+                  <div class="option-arrow q-mt-md">
+                    <q-icon name="arrow_forward" color="primary" size="24px" />
+                  </div>
+                </q-card-section>
+              </q-card>
             </div>
 
             <!-- 教師資料提交選項 -->
             <div class="col-12 col-sm-6">
-              <div class="option-card" @click="handleSubmissionClick('teacher')">
-                <div class="option-icon-wrapper">
-                  <q-icon name="school" color="white" size="48px" />
-                </div>
-                <div class="text-h6 text-white text-weight-bold q-mt-md">教師資料提交</div>
-                <div class="text-body2 text-white-8 q-mt-sm">提交教師相關文件、資料等</div>
-                <div class="option-arrow">
-                  <q-icon name="arrow_forward" color="white" size="24px" />
-                </div>
-              </div>
+              <q-card class="option-card" @click="handleSubmissionClick('teacher')">
+                <q-card-section class="text-center">
+                  <div class="option-icon-wrapper">
+                    <q-icon name="school" color="primary" size="48px" />
+                  </div>
+                  <div class="text-h6 text-weight-bold q-mt-md">教師資料提交</div>
+                  <div class="text-body2 text-grey-6 q-mt-sm">提交教師相關文件、資料等</div>
+                  <div class="option-arrow q-mt-md">
+                    <q-icon name="arrow_forward" color="primary" size="24px" />
+                  </div>
+                </q-card-section>
+              </q-card>
             </div>
           </div>
         </q-card-section>
@@ -462,6 +476,52 @@ function goToActivity(activity) {
     query: { id: activity.id }
   })
 }
+
+// 獲取狀態顏色
+function getStatusColor(status) {
+  const colorMap = {
+    'registered': 'orange',
+    'approved': 'green',
+    'rejected': 'red',
+    'draft': 'grey'
+  }
+  return colorMap[status] || 'grey'
+}
+
+// 獲取狀態文字
+function getStatusText(status) {
+  const textMap = {
+    'registered': '待初審',
+    'approved': '初審通過',
+    'rejected': '已駁回',
+    'draft': '草稿'
+  }
+  return textMap[status] || '未知狀態'
+}
+
+// 格式化日期
+function formatDate(dateString) {
+  if (!dateString) return ''
+
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffTime = Math.abs(now - date)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) {
+    return '今天'
+  } else if (diffDays === 1) {
+    return '昨天'
+  } else if (diffDays < 7) {
+    return `${diffDays} 天前`
+  } else {
+    return date.toLocaleDateString('zh-TW', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+  }
+}
 </script>
 
 <style scoped>
@@ -469,133 +529,75 @@ function goToActivity(activity) {
 .dashboard-page {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
-}
-
-/* 漸層背景 */
-.gradient-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    135deg,
-    #667eea 0%,
-    #764ba2 25%,
-    #f093fb 50%,
-    #4facfe 75%,
-    #00f2fe 100%
-  );
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
-  z-index: -1;
-}
-
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+  background-color: #f5f5f5;
 }
 
 /* 內容容器 */
 .dashboard-content {
   position: relative;
-  z-index: 1;
 }
 
-/* 玻璃態卡片基礎樣式 */
-.glass-card {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.glass-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-/* Header 卡片特殊樣式 */
+/* Header 卡片 */
 .header-card {
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+}
+
+.header-card .text-primary {
+  color: white !important;
+}
+
+.header-card .text-grey-7 {
+  color: rgba(255, 255, 255, 0.8) !important;
 }
 
 /* 快速操作按鈕 */
 .action-btn {
   width: 100%;
-  background: rgba(255, 255, 255, 0.25);
-  color: white;
-  border-radius: 12px;
   padding: 12px 20px;
   font-weight: 500;
-  border: 1px solid rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
 }
 
 .action-btn:hover {
-  background: rgba(255, 255, 255, 0.35);
-  transform: translateX(4px);
-  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
 }
 
 /* 新增提交案卡片 */
 .create-card {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
-  border: 2px solid rgba(255, 255, 255, 0.4);
   cursor: pointer;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  border: 2px dashed #1976d2;
+  transition: all 0.3s ease;
 }
 
 .create-card:hover {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(168, 85, 247, 0.4) 100%);
-  border-color: rgba(255, 255, 255, 0.6);
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 16px 48px 0 rgba(99, 102, 241, 0.4);
+  border-color: #1565c0;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(25, 118, 210, 0.2);
 }
 
 /* 活動卡片 */
 .activity-card {
   cursor: pointer;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .activity-card:hover {
-  transform: translateY(-6px) scale(1.02);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
 /* 卡片內容區域 */
 .card-content {
-  flex: 1;
   padding: 20px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
 /* 圖示包裝器 */
 .icon-wrapper {
-  background: rgba(255, 255, 255, 0.2);
+  background: #e3f2fd;
   border-radius: 50%;
   padding: 12px;
   display: inline-flex;
@@ -604,44 +606,26 @@ function goToActivity(activity) {
   transition: all 0.3s ease;
 }
 
-.glass-card:hover .icon-wrapper {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.1) rotate(5deg);
+.create-card:hover .icon-wrapper,
+.activity-card:hover .icon-wrapper {
+  background: #bbdefb;
+  transform: scale(1.1);
 }
 
 /* 卡片底部 */
 .card-footer {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 12px;
   transition: all 0.3s ease;
-}
-
-.glass-card:hover .card-footer {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-/* 文字顏色輔助類 */
-.text-white-8 {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.text-white-7 {
-  color: rgba(255, 255, 255, 0.7);
 }
 
 /* 響應式調整 */
 @media (max-width: 1023px) {
-  .glass-card {
-    padding: 20px;
-  }
-
   .card-content {
-    padding: 16px 12px;
+    padding: 16px;
   }
 }
 
@@ -657,71 +641,32 @@ function goToActivity(activity) {
 
 /* 懸浮視窗樣式 */
 .dialog-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 24px;
   min-width: 600px;
   max-width: 90vw;
-  box-shadow: 0 20px 60px 0 rgba(0, 0, 0, 0.3);
 }
 
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 28px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.dialog-content {
-  padding: 32px 28px;
 }
 
 /* 選項卡片 */
 .option-card {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  padding: 32px 24px;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
+  transition: all 0.3s ease;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.option-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-  opacity: 0;
-  transition: opacity 0.4s ease;
+  border: 2px solid #e0e0e0;
 }
 
 .option-card:hover {
-  transform: translateY(-8px) scale(1.05);
-  border-color: rgba(255, 255, 255, 0.6);
-  box-shadow: 0 20px 60px 0 rgba(99, 102, 241, 0.5);
-}
-
-.option-card:hover::before {
-  opacity: 1;
+  transform: translateY(-4px);
+  border-color: #1976d2;
+  box-shadow: 0 8px 24px rgba(25, 118, 210, 0.2);
 }
 
 .option-icon-wrapper {
-  background: rgba(255, 255, 255, 0.2);
+  background: #e3f2fd;
   border-radius: 50%;
   padding: 20px;
   display: inline-flex;
@@ -731,20 +676,16 @@ function goToActivity(activity) {
 }
 
 .option-card:hover .option-icon-wrapper {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.15) rotate(-5deg);
+  background: #bbdefb;
+  transform: scale(1.1);
 }
 
 .option-arrow {
-  margin-top: auto;
-  padding-top: 24px;
-  opacity: 0.7;
   transition: all 0.3s ease;
 }
 
 .option-card:hover .option-arrow {
-  opacity: 1;
-  transform: translateX(8px);
+  transform: translateX(4px);
 }
 
 /* 響應式調整 - Dialog */

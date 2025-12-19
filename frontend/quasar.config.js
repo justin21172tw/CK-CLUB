@@ -3,7 +3,6 @@
 
 import { defineConfig } from '#q-app/wrappers'
 import { fileURLToPath } from 'node:url'
-import { Notify } from 'quasar'
 
 export default defineConfig((ctx) => {
   return {
