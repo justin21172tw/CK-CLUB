@@ -13,53 +13,55 @@
       <q-card-section>
         <div class="text-h6 q-mb-md">
           <q-icon name="event" color="primary" size="sm" class="q-mr-sm" />
-          活動基本資訊
+          活動資訊
         </div>
 
         <q-form @submit="handleSubmit" class="q-gutter-md">
-          <div class="info-summary q-pa-md bg-blue-1 rounded-borders">
-            <div class="row items-center q-gutter-md">
-              <q-btn
-                unelevated
-                color="primary"
-                :label="isReadonly ? '查看活動基本資訊' : '設定活動基本資訊'"
-                icon="info"
-                @click="showOptionsDialog = true"
-              />
-              <div v-if="form.title" class="col">
-                <div class="text-body2">
-                  <strong>活動名稱：</strong>
-                  {{ form.title }}
-                </div>
-                <div v-if="form.description" class="text-body2 q-mt-xs text-grey-7">
-                  {{ form.description }}
-                </div>
-              </div>
-              <div v-else class="col text-grey-7">請點擊按鈕設定活動基本資訊</div>
-            </div>
-          </div>
-          <q-separator class="q-my-lg" />
-
-          <div class="text-h6 q-mb-md">
-            <q-icon name="settings" color="primary" size="sm" class="q-mr-sm" />
-            活動選項
-          </div>
-
           <div class="options-summary q-pa-md bg-blue-1 rounded-borders">
             <div class="row items-center q-gutter-md">
               <q-btn
                 unelevated
                 color="primary"
-                :label="isReadonly ? '查看活動選項' : '設定活動選項'"
+                :label="isReadonly ? '查看活動資訊' : '設定活動資訊'"
                 icon="tune"
                 @click="showOptionsDialog = true"
               />
               <div v-if="activityOptions" class="col">
                 <div class="text-body2">
+                  <strong>活動名稱：</strong>
+                  {{ activityOptions.activityName || '未設定' }}
+                </div>
+                <div class="text-body2 q-mt-xs">
                   <strong>活動類型：</strong>
                   {{ activityOptions.activityType === 'internal' ? '校內活動' : '校外活動' }}
                 </div>
+                <div v-if="activityOptions.activityType === 'external'" class="text-body2 q-mt-xs">
+                  <q-chip
+                    v-if="activityOptions.hasAccommodation"
+                    dense
+                    color="orange"
+                    text-color="white"
+                    icon="hotel">
+                    需要住宿
+                  </q-chip>
+                  <q-chip
+                    v-if="activityOptions.hasBus"
+                    dense
+                    color="blue"
+                    text-color="white"
+                    icon="directions_bus">
+                    需要租車
+                  </q-chip>
+                </div>
+                <div v-if="activityOptions.requiresProposal" class="text-body2 q-mt-xs">
+                  <q-chip dense color="purple" text-color="white" icon="description"> 需繳交企劃書 </q-chip>
+                </div>
+                <div class="text-body2 q-mt-sm">
+                  <strong>需繳交文件：</strong>
+                  {{ getDocumentNames(activityOptions.requiredDocuments) }}
+                </div>
               </div>
+              <div v-else class="col text-grey-7">請點擊按鈕設定活動資訊</div>
             </div>
           </div>
 
@@ -86,14 +88,6 @@
       </q-card-section>
     </q-card>
 
-    <activity-info-dialog
-      v-model="showInfoDialog"
-      :readonly="isReadonly"
-      :initial-data="form"
-      @confirm="handleInfoConfirm"
-      @cancel="handleInfoCancel"
-    />
-
     <activity-options-dialog
       v-model="showOptionsDialog"
       :readonly="isReadonly"
@@ -110,7 +104,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'boot/supabase'
 import { useAuth } from 'src/composables/useAuth'
-import ActivityInfoDialog from 'src/components/ActivityInfoDialog.vue'
+import { getDocumentNames } from 'src/config/constants'
 import ActivityOptionsDialog from 'src/components/ActivityOptionsDialog.vue'
 
 const router = useRouter()
@@ -118,17 +112,11 @@ const route = useRoute()
 const $q = useQuasar()
 const { currentUser } = useAuth()
 
-const showInfoDialog = ref(false)
 const showOptionsDialog = ref(false)
 const saving = ref(false)
 const activityId = ref(null)
 const loading = ref(false)
 const activityStatus = ref(null)
-
-const form = ref({
-  title: '',
-  description: '',
-})
 
 const activityOptions = ref(null)
 
@@ -140,7 +128,7 @@ const isReadonly = computed(() => {
 })
 
 const isFormValid = computed(() => {
-  return form.value.title && activityOptions.value !== null
+  return activityOptions.value !== null && activityOptions.value.activityName
 })
 
 // Load activity data if ID is provided in route
@@ -164,8 +152,6 @@ async function loadActivity(id) {
     if (error) throw error
 
     if (data) {
-      form.value.title = data.title || ''
-      form.value.description = data.description || ''
       activityStatus.value = data.status || 'draft'
 
       // Load options from JSONB field if exists
@@ -186,26 +172,12 @@ async function loadActivity(id) {
   }
 }
 
-function handleInfoConfirm(data) {
-  form.value = { ...data }
-  showInfoDialog.value = false
-  $q.notify({
-    type: 'positive',
-    message: '活動基本資訊已設定',
-    position: 'top',
-  })
-}
-
-function handleInfoCancel() {
-  showInfoDialog.value = false
-}
-
 function handleOptionsConfirm(options) {
   activityOptions.value = options
   showOptionsDialog.value = false
   $q.notify({
     type: 'positive',
-    message: '活動選項已設定',
+    message: '活動資訊已設定',
     position: 'top',
   })
 }
@@ -236,7 +208,7 @@ async function handleSubmit() {
   if (!activityOptions.value) {
     $q.notify({
       type: 'warning',
-      message: '請先設定活動選項',
+      message: '請先設定活動資訊',
       position: 'top',
     })
     return
@@ -246,8 +218,8 @@ async function handleSubmit() {
     saving.value = true
 
     const activityData = {
-      title: form.value.title,
-      description: form.value.description,
+      title: activityOptions.value.activityName,
+      description: activityOptions.value.activityDescription || '',
       type: 'activity',
       status: 'registered',
       options: activityOptions.value || {},
@@ -323,10 +295,6 @@ async function handleSubmit() {
 
 .page-header {
   padding: 0 8px;
-}
-
-.info-summary {
-  border: 1px solid #e3f2fd;
 }
 
 .options-summary {

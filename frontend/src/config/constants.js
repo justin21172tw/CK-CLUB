@@ -42,15 +42,21 @@ export const ACTIVITY_TYPES = {
 }
 
 // Required documents based on activity options
-export const DOCUMENT_CODES = {
-  A: '活動登錄表單',
-  B: '校內場地申請表',
-  C: '校外活動申請表',
-  D: '企劃書',
-  E: '家長同意書',
-  F: '保險證明',
-  G: '住宿合格證明',
-  H: '車輛契約書'
+export const DOCUMENT_DEFINITIONS = {
+  A: { code: 'A', name: '活動登錄表單', optional: false },
+  B: { code: 'B', name: '校內場地申請表', optional: false },
+  C: { code: 'C', name: '校外活動申請表', optional: false },
+  D: { code: 'D', name: '企劃書', optional: false },
+  E: { code: 'E', name: '家長同意書', optional: false },
+  F: { code: 'F', name: '保險（保單/收據/名冊）', optional: false },
+  G: { code: 'G', name: '住宿合格證明', optional: false },
+  H: { code: 'H', name: '車輛契約書', optional: false },
+}
+
+// Helper function to convert document codes to names
+export const getDocumentNames = (codes) => {
+  if (!codes || !Array.isArray(codes)) return '無'
+  return codes.map(code => DOCUMENT_DEFINITIONS[code]?.name || code).join('、')
 }
 
 export default {
@@ -60,5 +66,5 @@ export default {
   MAX_FILE_SIZE,
   NOTIFICATION_TIMEOUT,
   ACTIVITY_TYPES,
-  DOCUMENT_CODES,
+  DOCUMENT_DEFINITIONS,
 }
