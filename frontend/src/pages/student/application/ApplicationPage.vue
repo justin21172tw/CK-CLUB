@@ -179,7 +179,6 @@ async function loadActivity(id) {
       }
     }
   } catch (error) {
-    console.error('Load activity error:', error)
     $q.notify({
       type: 'negative',
       message: '載入活動資料失敗',
@@ -218,15 +217,14 @@ async function handleFilesUpdate(files) {
         .eq('id', activityId.value)
 
       if (error) throw error
-    } catch (error) {
-      console.error('Update files error:', error)
+    } catch {
+      // Silent error
     }
   }
 }
 
-// 處理單個文件上傳完成
-function handleUploadComplete(docCode, fileInfo) {
-  console.log(`File uploaded: ${docCode}`, fileInfo)
+function handleUploadComplete() {
+  // File upload completed
 }
 
 async function handleSubmit() {
@@ -313,7 +311,6 @@ async function handleSubmit() {
 
     router.push('/dashboard')
   } catch (error) {
-    console.error('Submit error:', error)
     $q.notify({
       type: 'negative',
       message: '登錄失敗',

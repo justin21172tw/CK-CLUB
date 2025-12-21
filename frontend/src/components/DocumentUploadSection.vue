@@ -7,21 +7,21 @@
       </div>
 
       <q-list separator>
-        <q-item 
-          v-for="doc in allDocuments" 
+        <q-item
+          v-for="doc in allDocuments"
           :key="doc.code"
           :class="{ 'document-disabled': !isDocumentRequired(doc.code) }"
         >
           <q-item-section avatar>
-            <q-icon 
+            <q-icon
               v-if="isDocumentRequired(doc.code)"
               :name="uploadedFiles[doc.code] ? 'check_circle' : 'radio_button_unchecked'"
-              :color="uploadedFiles[doc.code] ? 'positive' : 'grey'" 
+              :color="uploadedFiles[doc.code] ? 'positive' : 'grey'"
             />
-            <q-icon 
+            <q-icon
               v-else
               name="block"
-              color="grey-5" 
+              color="grey-5"
             />
           </q-item-section>
 
@@ -156,30 +156,24 @@ const fileInputRef = ref(null)
 const currentDocCode = ref(null)
 const uploadedFiles = ref({ ...props.existingFiles })
 
-// 檢查文件是否需要上傳
 const isDocumentRequired = (code) => {
   return props.requiredDocumentCodes.includes(code)
 }
 
-// 所有文件定義列表（需要上傳的在上，不需要的在下，各組內按代碼排序）
 const allDocuments = computed(() => {
   return Object.values(DOCUMENT_DEFINITIONS).sort((a, b) => {
     const aRequired = isDocumentRequired(a.code)
     const bRequired = isDocumentRequired(b.code)
-    
-    // 需要上傳的排在前面
+
     if (aRequired && !bRequired) return -1
     if (!aRequired && bRequired) return 1
-    
-    // 同組內按代碼排序
+
     return a.code.localeCompare(b.code)
   })
 })
 
-// 接受的文件類型
 const acceptedFileTypes = '.pdf,.doc,.docx,.jpg,.jpeg,.png,.zip'
 
-// 觸發文件選擇
 const triggerFileInput = (docCode) => {
   if (props.readonly) {
     $q.notify({
@@ -194,12 +188,10 @@ const triggerFileInput = (docCode) => {
   fileInputRef.value?.click()
 }
 
-// 處理文件選擇
 const handleFileSelect = async (event) => {
   const file = event.target.files[0]
   if (!file) return
 
-  // 驗證文件類型
   if (!validateFileType(file)) {
     $q.notify({
       type: 'negative',
@@ -210,7 +202,6 @@ const handleFileSelect = async (event) => {
     return
   }
 
-  // 驗證文件大小（50MB）
   if (!validateFileSize(file, 50 * 1024 * 1024)) {
     $q.notify({
       type: 'negative',
@@ -224,7 +215,7 @@ const handleFileSelect = async (event) => {
   try {
     const result = await uploadFile(file, props.activityId, currentDocCode.value)
 
-    uploadedFiles.value[currentDocCode.value] = {
+    const fileInfo = {
       name: file.name,
       path: result.path,
       url: result.url,
@@ -233,8 +224,9 @@ const handleFileSelect = async (event) => {
       uploadedAt: new Date().toISOString(),
     }
 
+    uploadedFiles.value[currentDocCode.value] = fileInfo
     emit('update:files', uploadedFiles.value)
-    emit('upload-complete', currentDocCode.value, uploadedFiles.value[currentDocCode.value])
+    emit('upload-complete', currentDocCode.value, fileInfo)
 
     $q.notify({
       type: 'positive',
@@ -243,7 +235,6 @@ const handleFileSelect = async (event) => {
       position: 'top',
     })
   } catch (error) {
-    console.error('Upload error:', error)
     $q.notify({
       type: 'negative',
       message: '上傳失敗',
@@ -252,24 +243,18 @@ const handleFileSelect = async (event) => {
     })
   }
 
-  // 重置文件輸入
   event.target.value = ''
   currentDocCode.value = null
 }
 
-// 查看文件
 const viewFile = async (docCode) => {
   try {
     const fileInfo = uploadedFiles.value[docCode]
     if (!fileInfo) return
 
-    // 獲取簽名 URL
     const signedUrl = await getSignedUrl(fileInfo.path, 3600)
-
-    // 在新窗口打開
     window.open(signedUrl, '_blank')
   } catch (error) {
-    console.error('View file error:', error)
     $q.notify({
       type: 'negative',
       message: '無法查看文件',
@@ -279,7 +264,6 @@ const viewFile = async (docCode) => {
   }
 }
 
-// 確認刪除
 const confirmDelete = (docCode) => {
   $q.dialog({
     title: '確認刪除',
@@ -291,7 +275,6 @@ const confirmDelete = (docCode) => {
   })
 }
 
-// 刪除文件
 const handleDelete = async (docCode) => {
   try {
     const fileInfo = uploadedFiles.value[docCode]
@@ -308,7 +291,6 @@ const handleDelete = async (docCode) => {
       position: 'top',
     })
   } catch (error) {
-    console.error('Delete error:', error)
     $q.notify({
       type: 'negative',
       message: '刪除失敗',
