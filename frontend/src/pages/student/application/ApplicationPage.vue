@@ -88,6 +88,18 @@
       </q-card-section>
     </q-card>
 
+    <!-- 文件上傳區域 (只在初審通過後顯示) -->
+    <q-card v-if="activityStatus === 'approved' && activityOptions" class="q-mt-md">
+      <document-upload-section
+        :activity-id="activityId"
+        :required-document-codes="activityOptions.requiredDocuments || []"
+        :existing-files="uploadedFiles"
+        :readonly="false"
+        @update:files="handleFilesUpdate"
+        @upload-complete="handleUploadComplete"
+      />
+    </q-card>
+
     <activity-options-dialog
       v-model="showOptionsDialog"
       :readonly="isReadonly"
@@ -106,6 +118,7 @@ import { supabase } from 'boot/supabase'
 import { useAuth } from 'src/composables/useAuth'
 import { getDocumentNames } from 'src/config/constants'
 import ActivityOptionsDialog from 'src/components/ActivityOptionsDialog.vue'
+import DocumentUploadSection from 'src/components/DocumentUploadSection.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -117,6 +130,7 @@ const saving = ref(false)
 const activityId = ref(null)
 const loading = ref(false)
 const activityStatus = ref(null)
+const uploadedFiles = ref({})
 
 const activityOptions = ref(null)
 
@@ -158,6 +172,11 @@ async function loadActivity(id) {
       if (data.options) {
         activityOptions.value = data.options
       }
+
+      // Load uploaded files if exists
+      if (data.uploaded_files) {
+        uploadedFiles.value = data.uploaded_files
+      }
     }
   } catch (error) {
     console.error('Load activity error:', error)
@@ -184,6 +203,30 @@ function handleOptionsConfirm(options) {
 
 function handleOptionsCancel() {
   showOptionsDialog.value = false
+}
+
+// 處理文件列表更新
+async function handleFilesUpdate(files) {
+  uploadedFiles.value = files
+
+  // 更新資料庫中的 uploaded_files 欄位
+  if (activityId.value) {
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .update({ uploaded_files: files })
+        .eq('id', activityId.value)
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Update files error:', error)
+    }
+  }
+}
+
+// 處理單個文件上傳完成
+function handleUploadComplete(docCode, fileInfo) {
+  console.log(`File uploaded: ${docCode}`, fileInfo)
 }
 
 async function handleSubmit() {
