@@ -28,6 +28,10 @@
               />
               <div v-if="activityOptions" class="col">
                 <div class="text-body2">
+                  <strong>主辦社團：</strong>
+                  {{ getClubName(activityOptions.clubId) || '未設定' }}
+                </div>
+                <div class="text-body2 q-mt-xs">
                   <strong>活動名稱：</strong>
                   {{ activityOptions.activityName || '未設定' }}
                 </div>
@@ -117,6 +121,7 @@ import { useQuasar } from 'quasar'
 import { supabase } from 'boot/supabase'
 import { useAuth } from 'src/composables/useAuth'
 import { getDocumentNames } from 'src/config/constants'
+import { getClubName } from 'src/config/clubs'
 import ActivityOptionsDialog from 'src/components/ActivityOptionsDialog.vue'
 import DocumentUploadSection from 'src/components/DocumentUploadSection.vue'
 
@@ -168,9 +173,12 @@ async function loadActivity(id) {
     if (data) {
       activityStatus.value = data.status || 'draft'
 
-      // Load options from JSONB field if exists
+      // Load options from JSONB field and club_id from dedicated column
       if (data.options) {
-        activityOptions.value = data.options
+        activityOptions.value = {
+          ...data.options,
+          clubId: data.club_id || '',
+        }
       }
 
       // Load uploaded files if exists
@@ -258,12 +266,19 @@ async function handleSubmit() {
   try {
     saving.value = true
 
+    // 從 options 中移除 clubId，只存到獨立的 club_id 欄位
+    const { clubId, ...optionsWithoutClubId } = activityOptions.value
+
+    // DEBUG: 確認 clubId 值
+    alert(`DEBUG: clubId = "${clubId}", type = ${typeof clubId}`)
+
     const activityData = {
       title: activityOptions.value.activityName,
       description: activityOptions.value.activityDescription || '',
       type: 'activity',
       status: 'registered',
-      options: activityOptions.value || {},
+      club_id: clubId || null,
+      options: optionsWithoutClubId,
     }
 
     // Update existing activity or create new one

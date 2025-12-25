@@ -225,6 +225,7 @@ import { useDashboard } from 'src/composables/useDashboard'
 import DashboardStatCard from './components/DashboardStatCard.vue'
 import ConfirmDialog from 'src/components/ConfirmDialog.vue'
 import ActivityOptionsDialog from 'src/components/ActivityOptionsDialog.vue'
+import { getClubName } from 'src/config/clubs'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -334,8 +335,11 @@ const handleActivityOptionsConfirm = (options) => {
   pendingActivityOptions.value = options
 
   // 設定確認對話框內容（包含選項資訊）
+  console.log('[DashboardPage] activity club id :', options.clubId)
   const activityTypeLabel = options.activityType === 'internal' ? '校內' : '校外'
   let optionsText = `活動類型：${activityTypeLabel}`
+
+  optionsText += `\n主辦社團: ${getClubName(options.clubId) ?? '未指定'}`
 
   if (options.activityType === 'external') {
     optionsText += `\n住宿：${options.hasAccommodation ? '是' : '否'}`
@@ -349,7 +353,7 @@ const handleActivityOptionsConfirm = (options) => {
 
   confirmConfig.value = {
     title: '確認登錄活動',
-    message: optionsText,
+    message: optionsText,           // TODO: 處理文字換行問題
     icon: 'how_to_reg',
     iconColor: 'warning',
   }
@@ -405,6 +409,7 @@ const handleConfirmSubmission = async () => {
         requiresProposal: pendingActivityOptions.value.requiresProposal || false,
         requiredDocuments: pendingActivityOptions.value.requiredDocuments || [],
       }
+     activityData.club_id = pendingActivityOptions.value.clubId || null
     }
 
     console.log('[DashboardPage] Final activity data:', activityData)

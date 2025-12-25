@@ -28,6 +28,37 @@
           <strong>登錄後所有資料將無法修改</strong>，請仔細確認。
         </div>
 
+        <!-- 主辦社團 -->
+        <div class="q-mb-md">
+          <div class="text-subtitle2 text-weight-bold q-mb-sm">
+            <q-icon name="groups" class="q-mr-xs" />
+            主辦社團 *
+          </div>
+          <q-select
+            v-model="options.clubId"
+            :options="clubOptions"
+            option-label="name"
+            option-value="id"
+            outlined
+            dense
+            :readonly="readonly"
+            :disable="readonly"
+            label="請選擇主辦社團"
+            emit-value
+            map-options
+            :rules="[(val) => !!val || '請選擇主辦社團']"
+          >
+            <template v-slot:option="scope">
+              <q-item v-bind="scope.itemProps">
+                <q-item-section>
+                  <q-item-label>{{ scope.opt.name }}</q-item-label>
+                  <q-item-label caption>{{ scope.opt.id }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+        </div>
+
         <!-- 活動名稱 -->
         <div class="q-mb-md">
           <div class="text-subtitle2 text-weight-bold q-mb-sm">
@@ -39,8 +70,8 @@
             outlined
             dense
             :readonly="readonly"
-            label="主辦社團 + 活動名稱"
-            placeholder="例：測資 Python 程式設計工作坊"
+            label="活動名稱"
+            placeholder="例：Python 程式設計工作坊"
             :rules="[(val) => (val && val.length > 0) || '請填寫活動名稱']"
           />
         </div>
@@ -279,6 +310,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { DOCUMENT_DEFINITIONS } from 'src/config/constants'
+import { CLUBS } from 'src/config/clubs'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -296,6 +328,8 @@ const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
 
 const isDev = import.meta.env.DEV
 
+const clubOptions = CLUBS
+
 const show = computed({
   get: () => props.modelValue,
   set: (val) => {
@@ -308,7 +342,8 @@ const show = computed({
 
 // 選項資料
 const options = ref({
-  activityName: '', // 主辦社團 + 活動名稱
+  clubId: '', // 主辦社團 ID
+  activityName: '', // 活動名稱
   activityDescription: '', // 活動描述（選填）
   startDate: '', // 活動開始日期 (YYYY-MM-DD)
   startTime: '', // 活動開始時間 (HH:mm)
@@ -400,50 +435,37 @@ watch(
 )
 
 const handleConfirm = () => {
-  console.log('[ActivityOptionsDialog] handleConfirm called')
-  console.log('[ActivityOptionsDialog] Current options:', options.value)
-
   // 驗證基本必填欄位
-  const requiredFields = {
-    activityName: options.value.activityName,
-    startDate: options.value.startDate,
-    startTime: options.value.startTime,
-    endDate: options.value.endDate,
-    endTime: options.value.endTime,
-    reportDeadline: options.value.reportDeadline,
-  }
-  console.log('[ActivityOptionsDialog] Required fields check:', requiredFields)
 
-  if (!options.value.activityName || !options.value.startDate || !options.value.startTime ||
+  if (!options.value.clubId || !options.value.activityName || !options.value.startDate || !options.value.startTime ||
       !options.value.endDate || !options.value.endTime || !options.value.reportDeadline) {
-    console.warn('[ActivityOptionsDialog] Validation failed: missing required fields')
     const missing = []
+    if (!options.value.clubId) missing.push('主辦社團')
     if (!options.value.activityName) missing.push('活動名稱')
     if (!options.value.startDate) missing.push('開始日期')
     if (!options.value.startTime) missing.push('開始時間')
     if (!options.value.endDate) missing.push('結束日期')
     if (!options.value.endTime) missing.push('結束時間')
     if (!options.value.reportDeadline) missing.push('報告繳交日期')
-    console.warn('[ActivityOptionsDialog] Missing fields:', missing)
     alert(`請填寫所有必填欄位（標記 * 的欄位）\n缺少：${missing.join('、')}`)
     return
   }
 
   // 驗證：如果有外校同學但未填寫校名
   if (options.value.hasExternalStudents === 'yes' && !options.value.externalSchoolName) {
-    console.warn('[ActivityOptionsDialog] Validation failed: missing external school name')
     alert('請填寫外校校名')
     return
   }
 
   const documentCodes = requiredDocuments.value.map((doc) => doc.code)
 
+  console.log('[optionDialog]options.value:', options.value)  //debug log
+  console.log('[optionDialog]clubId:', options.value.clubId)
   const confirmData = {
     ...options.value,
     requiredDocuments: documentCodes,
   }
-
-  console.log('[ActivityOptionsDialog] Emitting confirm with data:', confirmData)
+  console.log('[optionDialog]confirmData:', confirmData)   //debug log
 
   emit('confirm', confirmData)
 
@@ -461,6 +483,7 @@ const handleCancel = () => {
 
 const resetOptions = () => {
   options.value = {
+    clubId: '',
     activityName: '',
     activityDescription: '',
     startDate: '',
@@ -490,6 +513,7 @@ const fillTestData = () => {
   }
 
   options.value = {
+    clubId: 'Test',
     activityName: '測資 ',
     activityDescription: '此為開發用測試資料。',
     startDate: formatDate(nextWeek),
