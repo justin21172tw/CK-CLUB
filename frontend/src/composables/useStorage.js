@@ -15,9 +15,11 @@ export function useStorage() {
     if (!currentUser.value) {
       throw new Error('User not authenticated')
     }
+    // if( )   TODO: handle the situation when file path pas exists
 
     const userId = currentUser.value.id
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
+    console.log( `[useStorage.js-generateFilePath:]`)
     return `${userId}/${activityId}/${documentCode}_${sanitizedFilename}`
   }
 
