@@ -58,7 +58,13 @@
                   </q-chip>
                 </div>
                 <div v-if="activityOptions.requiresProposal" class="text-body2 q-mt-xs">
-                  <q-chip dense color="purple" text-color="white" icon="description"> 需繳交企劃書 </q-chip>
+                  <q-chip
+                    dense
+                    color="purple"
+                    text-color="white"
+                    icon="description">
+                    需繳交企劃書
+                  </q-chip>
                 </div>
                 <div class="text-body2 q-mt-sm">
                   <strong>需繳交文件：</strong>
@@ -184,6 +190,8 @@ async function loadActivity(id) {
       // Load uploaded files if exists
       if (data.uploaded_files) {
         uploadedFiles.value = data.uploaded_files
+      }else{
+        console.log( "no uploaded files found" );
       }
     }
   } catch (error) {
@@ -224,9 +232,10 @@ async function handleFilesUpdate(files) {
         .update({ uploaded_files: files })
         .eq('id', activityId.value)
 
+        console.log( `[application.vue-handleFilesUpdate:] `, files );
       if (error) throw error
-    } catch {
-      // Silent error
+    } catch (error) {
+      console.log( "[application.vue-handleFilesUpdate]Failed to update uploaded files in database.", error );
     }
   }
 }

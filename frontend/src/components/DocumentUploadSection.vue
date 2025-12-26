@@ -40,6 +40,7 @@
           <q-item-section side>
             <div v-if="isDocumentRequired(doc.code)" class="row q-gutter-sm">
               <!-- 上傳按鈕 -->
+              <!-- TODO: single and multiple file upload support -->
               <q-btn
                 v-if="!uploadedFiles[doc.code]"
                 dense
